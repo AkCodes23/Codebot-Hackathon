@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # Codebot-Hackathon
 Innotech Manipal
 =======
@@ -61,7 +61,7 @@ A voice-powered AI assistant designed specifically for farmers, using Groq and p
     For this local project setup, the Groq API key has been directly embedded (hardcoded) into the `kisaan_vaani.py` script.
     ```python
     # In kisaan_vaani.py
-    GROQ_API_KEY = "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" 
+    GROQ_API_KEY = "" 
     ```
     **Important Note:** While convenient for local testing, hardcoding API keys is **not recommended** for projects that are shared, version-controlled publicly, or deployed to production environments due to security risks. In such cases, using environment variables (as was the previous setup) is the preferred method.
 
