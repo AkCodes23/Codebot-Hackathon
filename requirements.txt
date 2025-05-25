@@ -1,0 +1,5 @@
+speechrecognition
+groq
+gTTS
+playsound==1.2.2
+pyttsx3
