@@ -1,0 +1,377 @@
+import streamlit as st
+import time
+import threading
+import os
+import json
+import queue
+import datetime
+import random
+import certifi
+from enum import Enum, auto
+import speech_recognition as sr
+import ast
+import operator as op
+
+# --- Configuration & Initialization ---
+
+# Secure API Key Management.
+# For a hackathon, set these in Streamlit's secrets manager (`.streamlit/secrets.toml`).
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY") or st.secrets.get("GROQ_API_KEY")
+TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY") or st.secrets.get("TAVILY_API_KEY")
+
+
+# Set SSL certificate path for enterprise or tricky network environments
+os.environ['REQUESTS_CA_BUNDLE'] = certifi.where()
+os.environ['SSL_CERT_FILE'] = certifi.where()
+
+SUPPORTED_LANGUAGES = {"english": "en-US", "hindi": "hi-IN", "spanish": "es-ES", "french": "fr-FR"}
+KNOWN_FALLBACK_RESPONSES = [
+    "LLM client not initialized. Please check your API Key configuration.",
+    "I'm having trouble connecting to my knowledge base right now. Please try again in a moment."
+]
+
+class AppState(Enum):
+    IDLE = auto(); LISTENING = auto(); PROCESSING = auto(); SPEAKING = auto()
+
+# --- Thread-Safe Queues & Events for Voice System ---
+@st.cache_resource
+def get_speech_queue(): return queue.Queue()
+
+@st.cache_resource
+def get_tts_finished_event(): return threading.Event()
+
+# --- Voice and Speech Infrastructure ---
+def speaker_thread_target(q, event, engine):
+    """TTS worker thread: Waits for text, speaks it, and signals completion."""
+    print("Speaker thread started.")
+    while True:
+        text_to_speak = q.get()
+        if text_to_speak is None: break
+        try:
+            engine.say(text_to_speak)
+            engine.runAndWait()
+        except Exception as e:
+            print(f"TTS Thread: ERROR in speaking loop: {e}")
+        finally:
+            event.set() # Signal that speaking is done
+    print("Speaker thread stopped.")
+
+@st.cache_resource
+def start_speaker_system(_speech_queue, _tts_finished_event, _lang):
+    """Initializes and starts the pyttsx3 engine in a separate thread."""
+    try:
+        import pyttsx3
+        engine = pyttsx3.init()
+        engine.setProperty('rate', 160)
+        voices = engine.getProperty('voices')
+        # A more robust voice selection for different OS
+        target_voice_name_part = _lang.split('-')[0] if _lang != 'en-US' else 'english'
+        chosen_id = next((v.id for v in voices if target_voice_name_part in v.name.lower()), None)
+        if not chosen_id:
+            # Fallback for common English voices
+            chosen_id = next((v.id for v in voices if 'zira' in v.name.lower() or 'david' in v.name.lower()), voices[0].id if voices else None)
+
+        if chosen_id: engine.setProperty('voice', chosen_id)
+        
+        thread = threading.Thread(target=speaker_thread_target, args=(_speech_queue, _tts_finished_event, engine), daemon=True)
+        thread.start()
+        return engine
+    except Exception as e:
+        st.error(f"Failed to initialize TTS engine: {e}. Voice output disabled.")
+        return None
+
+def speak(text_to_speak: str):
+    """Adds text to the speech queue and clears the completion signal."""
+    if text_to_speak and text_to_speak.strip():
+        get_tts_finished_event().clear()
+        get_speech_queue().put(text_to_speak)
+
+def listen_for_voice(recognizer, lang="en-US"):
+    """Listens for user voice input and returns the recognized text."""
+    try:
+        with sr.Microphone() as source:
+            recognizer.adjust_for_ambient_noise(source, duration=0.5)
+            # Listen with a timeout and phrase time limit for a responsive demo
+            audio = recognizer.listen(source, timeout=5, phrase_time_limit=15)
+        return recognizer.recognize_google(audio, language=lang)
+    except sr.WaitTimeoutError:
+        print("STT: WaitTimeoutError")
+        return "TIMEOUT"
+    except sr.UnknownValueError:
+        print("STT: UnknownValueError")
+        return "UNCLEAR"
+    except sr.RequestError as e:
+        print(f"STT Request Error: {e}")
+        st.error(f"Could not request results from speech recognition service; {e}")
+        return "ERROR"
+    except Exception as e:
+        print(f"STT General Error: {e}")
+        st.error("Microphone not detected. Please check your system settings.")
+        return "NO_MIC"
+
+# --- Cached API Clients & Recognizer ---
+@st.cache_resource
+def get_groq_client():
+    if not GROQ_API_KEY: return None
+    from groq import Groq
+    return Groq(api_key=GROQ_API_KEY)
+
+@st.cache_resource
+def get_tavily_client():
+    if not TAVILY_API_KEY: return None
+    from tavily import TavilyClient
+    return TavilyClient(api_key=TAVILY_API_KEY)
+
+@st.cache_resource
+def get_stt_recognizer():
+    return sr.Recognizer()
+
+# --- AGENT TOOLS ---
+def get_current_date():
+    return f"Today is {datetime.datetime.now().strftime('%A, %B %d, %Y')}."
+
+def safe_math_eval(node):
+    """Safely evaluates an AST node."""
+    ops = {
+        ast.Add: op.add, ast.Sub: op.sub, ast.Mult: op.mul,
+        ast.Div: op.truediv, ast.Pow: op.pow, ast.USub: op.neg
+    }
+    if isinstance(node, ast.Constant):
+        return node.value
+    elif isinstance(node, ast.BinOp):
+        return ops[type(node.op)](safe_math_eval(node.left), safe_math_eval(node.right))
+    elif isinstance(node, ast.UnaryOp):
+        return ops[type(node.op)](safe_math_eval(node.operand))
+    else:
+        raise TypeError("Unsupported operation in mathematical expression")
+
+def calculate_math(expression: str):
+    """Calculates a math expression safely."""
+    try:
+        result = safe_math_eval(ast.parse(expression, mode='eval').body)
+        return f"The result of {expression} is {result}."
+    except (TypeError, SyntaxError, ValueError, KeyError):
+        return "I couldn't solve that. Please state a basic arithmetic expression like '5 times 3'."
+    except Exception as e:
+        print(f"Math Error: {e}")
+        return "I encountered an error trying to solve that."
+
+def tell_joke():
+    jokes = [
+        "Why don't scientists trust atoms? Because they make up everything!",
+        "Why did the scarecrow win an award? Because he was outstanding in his field!",
+        "What do you call a sad strawberry? A blueberry."
+    ]
+    return random.choice(jokes)
+
+def perform_web_search(query: str):
+    """General web search tool with improved error handling."""
+    tavily_client = get_tavily_client()
+    if not tavily_client: return "Search client is not configured due to missing API key."
+    try:
+        response = tavily_client.search(query=query, search_depth="basic", max_results=3, include_answer=True)
+        if response.get("answer"): return response["answer"]
+        return "\n".join([f"Source {i+1}: {res['content']}" for i, res in enumerate(response['results'])])
+    except Exception as e:
+        print(f"CRITICAL: Web search failed. Query: '{query}'. Error: {e}")
+        return "Error: I was unable to connect to the search service at this time."
+
+# --- Agentic Logic ---
+def generate_agent_response(user_query: str) -> dict:
+    """The agent's brain: routes to tools and synthesizes a response."""
+    groq_client = get_groq_client()
+    if not groq_client: return {"response": KNOWN_FALLBACK_RESPONSES[0]}
+
+    system_prompt_router = f"""You are a master reasoning agent that decides which tool to use to answer a user's query.
+You have the following tools available:
+- `get_current_date`: Use ONLY when the user asks for "today's date" or "the current day".
+- `get_weather_forecast`: Use for any questions about weather or forecasts. Requires a `location` parameter.
+- `get_mandi_prices`: Use for questions about crop prices, market rates, or "mandi bhav". Requires a `crop` and optional `market` parameter.
+- `get_farming_advice`: Use for questions about farming techniques, pests, fertilizers, or crop diseases. Requires a `topic` parameter.
+- `calculate_math`: Use for solving mathematical expressions. Requires an `expression` parameter.
+- `tell_joke`: Use when the user asks for a joke.
+- `web_search`: Use as a general-purpose tool for any other query that requires up-to-date information, facts about people, places, or events. Requires a `query` parameter.
+- `converse`: Use if no other tool is suitable, for greetings, or for general conversation.
+
+**Instructions:**
+1.  Analyze the user's query to understand their intent.
+2.  Choose the most appropriate tool from the list above.
+3.  Your output MUST be a JSON object with `tool_to_use`, `thought` (your reasoning), and `parameters` (a dictionary of the arguments needed by the tool).
+"""
+    
+    system_prompt_final_agent = """You are KisaanVaani, a friendly and helpful voice assistant for farmers. You will be given information from a tool.
+1.  Present this information to the user in a natural, conversational, and concise way.
+2.  If the tool was a search, synthesize the key findings into a helpful summary. Do not just list sources.
+3.  If the tool returned an error, state that you couldn't find the information and apologize.
+4.  ALWAYS end your response by asking a gentle, open-ended follow-up question like 'Is there anything else I can help with?' or 'What would you like to know next?'."""
+
+    tools = {
+        "get_current_date": get_current_date,
+        "calculate_math": lambda p: calculate_math(p.get("expression")),
+        "tell_joke": tell_joke,
+        "get_weather_forecast": lambda p: perform_web_search(f"weather forecast for {p.get('location')}"),
+        "get_mandi_prices": lambda p: perform_web_search(f"current price of {p.get('crop')} in {p.get('market', 'India')} mandi"),
+        "get_farming_advice": lambda p: perform_web_search(f"best farming practices for {p.get('topic')} site:agrifarming.in OR site:vikaspedia.in"),
+        "web_search": lambda p: perform_web_search(p.get("query")),
+    }
+    
+    try:
+        # Step 1: Route to the correct tool
+        router_messages = [{"role": "system", "content": system_prompt_router}, {"role": "user", "content": user_query}]
+        router_completion = groq_client.chat.completions.create(messages=router_messages, model="llama3-8b-8192", temperature=0.0, response_format={"type": "json_object"})
+        decision = json.loads(router_completion.choices[0].message.content)
+        
+        thought = decision.get("thought", "No thought was generated.")
+        chosen_tool = decision.get("tool_to_use")
+        params = decision.get("parameters", {})
+        
+        # Step 2: Execute the tool
+        tool_output = None
+        search_feedback = None
+        if chosen_tool and chosen_tool != "converse" and chosen_tool in tools:
+            # Generate search feedback for the user to see while waiting
+            if chosen_tool in ["web_search", "get_weather_forecast", "get_mandi_prices", "get_farming_advice"]:
+                 search_query = params.get('query') or params.get('topic') or params.get('location') or params.get('crop')
+                 search_feedback = f"🔎 Searching for: *{search_query}*"
+            
+            tool_function = tools[chosen_tool]
+            # Handle tools that may or may not have params
+            tool_output = tool_function(params) if params else tool_function()
+
+        # Step 3: Synthesize the final answer
+        if tool_output:
+            final_messages = [{"role": "system", "content": system_prompt_final_agent}, {"role": "user", "content": f"Here is the information you found: {tool_output}"}]
+            final_completion = groq_client.chat.completions.create(messages=final_messages, model="llama3-8b-8192", temperature=0.7)
+            final_answer = final_completion.choices[0].message.content
+        else: # If no tool was chosen or tool was "converse", get a direct conversational response
+            final_messages = [{"role": "system", "content": system_prompt_final_agent}, {"role": "user", "content": user_query}]
+            final_completion = groq_client.chat.completions.create(messages=final_messages, model="llama3-8b-8192", temperature=0.7)
+            final_answer = final_completion.choices[0].message.content
+
+        return {"response": final_answer, "feedback": search_feedback, "thought": thought}
+        
+    except Exception as e:
+        print(f"Agent: CRITICAL ERROR in agent logic: {e}")
+        return {"response": KNOWN_FALLBACK_RESPONSES[1]}
+
+# --- UI and State Management ---
+def display_chat_history():
+    for msg in st.session_state.chat_history:
+        with st.chat_message(msg["role"]): st.markdown(msg['content'])
+
+def handle_user_input(user_input_text: str):
+    """Processes user input, generates a response, and updates the chat history."""
+    st.session_state.app_state = AppState.PROCESSING
+    st.session_state.chat_history.append({"role": "user", "content": user_input_text})
+    
+    agent_output = generate_agent_response(user_input_text)
+    
+    # Optionally display thought process in the chat
+    if st.session_state.get('reasoning_mode_active') and (thought := agent_output.get("thought")):
+        st.session_state.chat_history.append({"role": "assistant", "content": f"🤔 *Thought: {thought}*"})
+    
+    # Display search feedback immediately for better UX
+    if feedback := agent_output.get("feedback"):
+        st.session_state.chat_history.append({"role": "assistant", "content": feedback})
+    
+    # Display and speak the final response
+    if response := agent_output.get("response"):
+        st.session_state.chat_history.append({"role": "assistant", "content": response})
+        if st.session_state.get('voice_conversation_active'):
+            st.session_state.app_state = AppState.SPEAKING
+            speak(response)
+    else: # If something went wrong and there's no response, return to idle/listening
+        st.session_state.app_state = AppState.IDLE if not st.session_state.get('voice_conversation_active') else AppState.LISTENING
+
+# --- Main App Logic ---
+def run_kisaanvaani_app():
+    st.set_page_config(page_title="KisaanVaani", layout="centered")
+    st.title("🌾 KisaanVaani Demo")
+
+    # Initial setup of session state
+    if 'app_state' not in st.session_state:
+        st.session_state.update({
+            "app_state": AppState.IDLE,
+            "chat_history": [{"role": "assistant", "content": "Welcome to KisaanVaani! How can I assist you today?"}],
+            "voice_conversation_active": False,
+            "reasoning_mode_active": False,
+            "selected_language_code": 'en-US',
+            "selected_language_name": 'english'
+        })
+
+    # Validate API keys on startup. This is crucial.
+    if not GROQ_API_KEY or not TAVILY_API_KEY:
+        st.error("🚨 Missing API Keys! Please configure GROQ_API_KEY and TAVILY_API_KEY in your Streamlit secrets.")
+        st.stop()
+    
+    # --- Sidebar for Settings ---
+    st.sidebar.header("Settings")
+    st.sidebar.toggle("🧠 Show Agent Reasoning", key="reasoning_mode_active", help="See the agent's thought process in the chat.")
+    st.sidebar.header("Voice Conversation")
+
+    is_voice_active = st.session_state.voice_conversation_active
+    tts_event = get_tts_finished_event()
+
+    if not is_voice_active:
+        if st.sidebar.button("🎤 Start Voice Demo", type="primary", use_container_width=True):
+            # Initialize voice systems on first click
+            start_speaker_system(get_speech_queue(), tts_event, st.session_state.selected_language_code)
+            get_stt_recognizer() # Pre-initializes the recognizer
+            
+            st.session_state.voice_conversation_active = True
+            st.session_state.app_state = AppState.SPEAKING
+            greeting = "Voice mode activated."
+            speak(greeting) # Greet the user with voice
+            # Update chat history without adding user message
+            st.session_state.chat_history.append({"role": "assistant", "content": greeting})
+            st.rerun()
+    else:
+        if st.sidebar.button("🛑 Stop Voice Demo", type="secondary", use_container_width=True):
+            st.session_state.voice_conversation_active = False
+            st.session_state.app_state = AppState.IDLE
+            st.rerun()
+
+    # --- Main Interface ---
+    status_container = st.empty()
+    display_chat_history()
+
+    # This state machine runs ONLY if voice mode is active
+    if is_voice_active:
+        current_state = st.session_state.app_state
+        if current_state == AppState.SPEAKING:
+            status_container.status("🗣️ KisaanVaani is speaking...", state="running")
+            # Wait for the speaking to finish
+            if tts_event.wait(timeout=0.1): # Non-blocking check
+                st.session_state.app_state = AppState.LISTENING
+                st.rerun()
+
+        elif current_state == AppState.LISTENING:
+            status_container.status("🎤 Listening... Say your query", state="running")
+            recognizer = get_stt_recognizer()
+            voice_result = listen_for_voice(recognizer, lang=st.session_state.selected_language_code)
+
+            if voice_result and voice_result not in ["TIMEOUT", "UNCLEAR", "ERROR", "NO_MIC"]:
+                handle_user_input(voice_result)
+                st.rerun()
+            elif voice_result == "TIMEOUT":
+                 time.sleep(0.5) # A brief pause before listening again
+                 st.rerun() # Stay in listening state without showing error
+            elif voice_result != "NO_MIC": # On unclear speech or API error, inform user
+                error_message = "I didn't quite catch that. Could you please say it again?"
+                speak(error_message) # Speak the error
+                st.session_state.chat_history.append({"role": "assistant", "content": error_message})
+                st.session_state.app_state = AppState.SPEAKING
+                st.rerun()
+
+        elif current_state == AppState.PROCESSING:
+            status_container.status("🤔 Thinking...", state="running")
+
+    # Show text input only when voice mode is off
+    if not is_voice_active:
+        if text_input := st.chat_input("Type your message here:"):
+            handle_user_input(text_input)
+            st.rerun()
+
+
+if __name__ == "__main__":
+    run_kisaanvaani_app()
