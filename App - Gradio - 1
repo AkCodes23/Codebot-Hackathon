@@ -1,0 +1,638 @@
+import gradio as gr
+import os
+import json
+import datetime
+import random
+import certifi
+from groq import Groq
+from tavily import TavilyClient
+import elevenlabs
+from elevenlabs import generate, play, set_api_key, voices
+import speech_recognition as sr
+import ast
+import operator as op
+from typing import Optional, Tuple, List, Dict, Any, Generator
+import pandas as pd
+from pathlib import Path
+from collections import deque
+import time
+
+# --- Configuration & Initialization ---
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY")
+ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY")
+
+# Set SSL certificate path
+os.environ['REQUESTS_CA_BUNDLE'] = certifi.where()
+os.environ['SSL_CERT_FILE'] = certifi.where()
+
+# Initialize API clients
+groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
+tavily_client = TavilyClient(api_key=TAVILY_API_KEY) if TAVILY_API_KEY else None
+set_api_key(ELEVENLABS_API_KEY) if ELEVENLABS_API_KEY else None
+
+# Initialize speech recognizer
+recognizer = sr.Recognizer()
+
+# --- Constants ---
+MAX_CONTEXT_LENGTH = 10  # Maximum number of messages to keep in context
+SUPPORTED_LANGUAGES = {
+    "English": "en-US",
+    "Hindi": "hi-IN",
+    "Punjabi": "pa-IN",
+    "Gujarati": "gu-IN",
+    "Marathi": "mr-IN",
+    "Bengali": "bn-IN",
+    "Tamil": "ta-IN",
+    "Telugu": "te-IN",
+    "Kannada": "kn-IN",
+    "Malayalam": "ml-IN"
+}
+
+# Get available ElevenLabs voices
+AVAILABLE_VOICES = []
+if ELEVENLABS_API_KEY:
+    try:
+        AVAILABLE_VOICES = [voice.name for voice in voices()]
+    except Exception as e:
+        print(f"Error fetching voices: {e}")
+        AVAILABLE_VOICES = ["Rachel", "Adam", "Sam"]  # Fallback voices
+
+# --- Context Management ---
+class ChatContext:
+    def __init__(self, max_length: int = MAX_CONTEXT_LENGTH):
+        self.context = deque(maxlen=max_length)
+        self.search_history = []
+        self.reasoning_history = []
+        self.user_profile = {
+            "location": None,
+            "language": "English",
+            "voice": "Rachel",
+            "preferences": {}
+        }
+        self.clarification_state = {
+            "waiting_for": None,
+            "original_query": None,
+            "tool": None,
+            "parameters": {}
+        }
+    
+    def add_message(self, user_msg: str, assistant_msg: str, reasoning: str = None):
+        self.context.append({
+            "user": user_msg,
+            "assistant": assistant_msg,
+            "timestamp": datetime.datetime.now().isoformat(),
+            "reasoning": reasoning
+        })
+    
+    def add_search(self, query: str, results: str):
+        self.search_history.append({
+            "query": query,
+            "results": results,
+            "timestamp": datetime.datetime.now().isoformat()
+        })
+    
+    def get_context(self) -> List[Dict[str, str]]:
+        return list(self.context)
+    
+    def get_search_history(self) -> List[Dict[str, str]]:
+        return self.search_history
+    
+    def update_profile(self, key: str, value: Any):
+        if key in self.user_profile:
+            self.user_profile[key] = value
+        else:
+            self.user_profile["preferences"][key] = value
+    
+    def get_profile(self) -> Dict[str, Any]:
+        return self.user_profile
+    
+    def set_clarification_state(self, waiting_for: str, original_query: str, tool: str, parameters: Dict[str, Any]):
+        self.clarification_state = {
+            "waiting_for": waiting_for,
+            "original_query": original_query,
+            "tool": tool,
+            "parameters": parameters
+        }
+    
+    def clear_clarification_state(self):
+        self.clarification_state = {
+            "waiting_for": None,
+            "original_query": None,
+            "tool": None,
+            "parameters": {}
+        }
+    
+    def clear(self):
+        self.context.clear()
+        self.search_history.clear()
+        self.reasoning_history.clear()
+        self.clear_clarification_state()
+
+# Initialize chat context
+chat_context = ChatContext()
+
+# --- Helper Functions ---
+def get_current_date():
+    return f"Today is {datetime.datetime.now().strftime('%A, %B %d, %Y')}."
+
+def safe_math_eval(node):
+    """Safely evaluates an AST node."""
+    ops = {
+        ast.Add: op.add, ast.Sub: op.sub, ast.Mult: op.mul,
+        ast.Div: op.truediv, ast.Pow: op.pow, ast.USub: op.neg
+    }
+    if isinstance(node, ast.Constant):
+        return node.value
+    elif isinstance(node, ast.BinOp):
+        return ops[type(node.op)](safe_math_eval(node.left), safe_math_eval(node.right))
+    elif isinstance(node, ast.UnaryOp):
+        return ops[type(node.op)](safe_math_eval(node.operand))
+    else:
+        raise TypeError("Unsupported operation in mathematical expression")
+
+def calculate_math(expression: str):
+    """Calculates a math expression safely."""
+    try:
+        result = safe_math_eval(ast.parse(expression, mode='eval').body)
+        return f"The result of {expression} is {result}."
+    except (TypeError, SyntaxError, ValueError, KeyError):
+        return "I couldn't solve that. Please state a basic arithmetic expression like '5 times 3'."
+    except Exception as e:
+        print(f"Math Error: {e}")
+        return "I encountered an error trying to solve that."
+
+def tell_joke():
+    jokes = [
+        "Why don't scientists trust atoms? Because they make up everything!",
+        "Why did the scarecrow win an award? Because he was outstanding in his field!",
+        "What do you call a sad strawberry? A blueberry."
+    ]
+    return random.choice(jokes)
+
+def perform_web_search(query: str, search_type: str = "basic") -> Dict[str, Any]:
+    """Enhanced web search with different search types and result formatting."""
+    if not tavily_client:
+        return {
+            "success": False,
+            "error": "Search client is not configured due to missing API key."
+        }
+    
+    try:
+        # Perform the search
+        response = tavily_client.search(
+            query=query,
+            search_depth=search_type,
+            max_results=5,
+            include_answer=True
+        )
+        
+        # Format the results
+        formatted_results = {
+            "success": True,
+            "answer": response.get("answer", ""),
+            "sources": [],
+            "timestamp": datetime.datetime.now().isoformat()
+        }
+        
+        # Add sources with metadata
+        for idx, result in enumerate(response.get("results", [])):
+            formatted_results["sources"].append({
+                "title": result.get("title", f"Source {idx + 1}"),
+                "content": result.get("content", ""),
+                "url": result.get("url", ""),
+                "relevance_score": result.get("score", 0)
+            })
+        
+        # Add to search history
+        chat_context.add_search(query, formatted_results)
+        
+        return formatted_results
+    
+    except Exception as e:
+        print(f"CRITICAL: Web search failed. Query: '{query}'. Error: {e}")
+        return {
+            "success": False,
+            "error": f"Error: I was unable to connect to the search service at this time. Details: {str(e)}"
+        }
+
+def generate_agent_response(user_query: str) -> Dict[str, Any]:
+    """Enhanced agent response with proper context management and clarification handling."""
+    if not groq_client:
+        return {
+            "response": "LLM client not initialized. Please check your API Key configuration.",
+            "thought": "Error: Groq client not initialized",
+            "search_results": None,
+            "status": "error"
+        }
+
+    # Get relevant context from ChatContext
+    recent_context = chat_context.get_context()
+    context_str = "\n".join([
+        f"User: {msg['user']}\nAssistant: {msg['assistant']}"
+        for msg in recent_context[-3:]  # Use last 3 messages for context
+    ])
+
+    # Get user profile information
+    user_profile = chat_context.get_profile()
+    profile_str = "\n".join([
+        f"{key}: {value}"
+        for key, value in user_profile.items()
+        if value is not None
+    ])
+
+    system_prompt_router = f"""You are a master reasoning agent that decides which tool to use to answer a user's query.
+You have access to the following context from recent conversation:
+{context_str}
+
+User Profile Information:
+{profile_str}
+
+You have the following tools available:
+- `get_current_date`: Use ONLY when the user asks for "today's date" or "the current day".
+- `get_weather_forecast`: Use for any questions about weather or forecasts. Requires a `location` parameter.
+- `get_mandi_prices`: Use for questions about crop prices, market rates, or "mandi bhav". Requires a `crop` and optional `market` parameter.
+- `get_farming_advice`: Use for questions about farming techniques, pests, fertilizers, or crop diseases. Requires a `topic` parameter.
+- `calculate_math`: Use for solving mathematical expressions. Requires an `expression` parameter.
+- `tell_joke`: Use when the user asks for a joke.
+- `web_search`: Use as a general-purpose tool for any other query that requires up-to-date information, facts about people, places, or events. Requires a `query` parameter.
+- `update_user_profile`: Use when the user provides personal information or preferences. Requires `key` and `value` parameters.
+- `converse`: Use if no other tool is suitable, for greetings, or for general conversation.
+
+**Instructions:**
+1. Analyze the user's query and the conversation context to understand their intent.
+2. Choose the most appropriate tool from the list above.
+3. If a required parameter is missing, set status to "requires_clarification" and provide a clarification_question.
+4. Your output MUST be a JSON object with:
+   - `tool_to_use`: The chosen tool
+   - `thought`: Your detailed reasoning process
+   - `parameters`: A dictionary of the arguments needed by the tool
+   - `context_used`: Which parts of the conversation context were relevant
+   - `confidence`: A number between 0 and 1 indicating your confidence in the chosen tool
+   - `status`: Either "ready", "requires_clarification", or "error"
+   - `clarification_question`: Required if status is "requires_clarification"
+"""
+
+    system_prompt_final_agent = """You are KisaanVaani, a friendly and helpful voice assistant for farmers. You will be given information from a tool.
+1. Present this information to the user in a natural, conversational, and concise way.
+2. If the tool was a search, synthesize the key findings into a helpful summary. Do not just list sources.
+3. If the tool returned an error, state that you couldn't find the information and apologize.
+4. ALWAYS end your response by asking a gentle, open-ended follow-up question like 'Is there anything else I can help with?' or 'What would you like to know next?'."""
+
+    try:
+        # Check if we're in clarification state
+        if chat_context.clarification_state["waiting_for"]:
+            # Handle the clarification response
+            params = chat_context.clarification_state["parameters"]
+            params[chat_context.clarification_state["waiting_for"]] = user_query
+            
+            # Execute the original tool with the new parameter
+            tool_output = execute_tool(chat_context.clarification_state["tool"], params)
+            
+            # Clear clarification state
+            chat_context.clear_clarification_state()
+            
+            # Format the response using the final agent
+            final_messages = [
+                {"role": "system", "content": system_prompt_final_agent},
+                {"role": "user", "content": f"""Original Query: {chat_context.clarification_state['original_query']}
+Tool Output: {json.dumps(tool_output)}"""}
+            ]
+            
+            final_completion = groq_client.chat.completions.create(
+                messages=final_messages,
+                model="llama3-8b-8192",
+                temperature=0.7
+            )
+            
+            final_response = final_completion.choices[0].message.content
+            
+            # Add to chat context
+            chat_context.add_message(user_query, final_response, "Tool executed with clarification")
+            
+            return {
+                "response": final_response,
+                "thought": "Tool executed with clarification",
+                "search_results": tool_output.get("search_results"),
+                "status": "ready"
+            }
+
+        # Step 1: Route to the correct tool with context awareness
+        router_messages = [
+            {"role": "system", "content": system_prompt_router},
+            {"role": "user", "content": user_query}
+        ]
+        router_completion = groq_client.chat.completions.create(
+            messages=router_messages,
+            model="llama3-8b-8192",
+            temperature=0.0,
+            response_format={"type": "json_object"}
+        )
+        decision = json.loads(router_completion.choices[0].message.content)
+        
+        # Check if clarification is needed
+        if decision.get("status") == "requires_clarification":
+            chat_context.set_clarification_state(
+                waiting_for=decision.get("clarification_parameter"),
+                original_query=user_query,
+                tool=decision.get("tool_to_use"),
+                parameters=decision.get("parameters", {})
+            )
+            return {
+                "response": decision.get("clarification_question"),
+                "thought": decision.get("thought"),
+                "status": "requires_clarification",
+                "search_results": None
+            }
+
+        # Execute the tool
+        tool_output = execute_tool(decision.get("tool_to_use"), decision.get("parameters", {}))
+        
+        # Format the response using the final agent
+        final_messages = [
+            {"role": "system", "content": system_prompt_final_agent},
+            {"role": "user", "content": f"""Original Query: {user_query}
+Tool Output: {json.dumps(tool_output)}"""}
+        ]
+        
+        final_completion = groq_client.chat.completions.create(
+            messages=final_messages,
+            model="llama3-8b-8192",
+            temperature=0.7
+        )
+        
+        final_response = final_completion.choices[0].message.content
+        
+        # Add to chat context
+        chat_context.add_message(user_query, final_response, decision.get("thought"))
+        
+        return {
+            "response": final_response,
+            "thought": decision.get("thought"),
+            "search_results": tool_output.get("search_results"),
+            "status": "ready"
+        }
+
+    except Exception as e:
+        print(f"Error in generate_agent_response: {e}")
+        return {
+            "response": "I apologize, but I encountered an error while processing your request. Please try again.",
+            "thought": f"Error occurred: {str(e)}",
+            "search_results": None,
+            "status": "error"
+        }
+
+def execute_tool(tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+    """Execute the specified tool with the given parameters."""
+    if tool_name == "web_search":
+        return perform_web_search(parameters.get("query"))
+    elif tool_name == "update_user_profile":
+        chat_context.update_profile(parameters.get("key"), parameters.get("value"))
+        return {
+            "success": True,
+            "message": f"Updated {parameters.get('key')} to {parameters.get('value')}"
+        }
+    elif tool_name in tools:
+        tool_function = tools[tool_name]
+        result = tool_function(parameters) if parameters else tool_function()
+        return {
+            "success": True,
+            "result": result
+        }
+    return {
+        "success": False,
+        "error": f"Unknown tool: {tool_name}"
+    }
+
+def text_to_speech(text: str, voice_name: str = "Rachel") -> bytes:
+    """Convert text to speech using ElevenLabs with voice selection."""
+    if not ELEVENLABS_API_KEY:
+        return None
+    
+    try:
+        audio = generate(
+            text=text,
+            voice=voice_name,
+            model="eleven_monolingual_v1"
+        )
+        return audio
+    except Exception as e:
+        print(f"Error in text_to_speech: {e}")
+        return None
+
+def transcribe_audio(audio_file: str, language: str = "en-US") -> str:
+    """Transcribe audio using Google's speech recognition service with language selection."""
+    try:
+        with sr.AudioFile(audio_file) as source:
+            recognizer.adjust_for_ambient_noise(source, duration=0.5)
+            audio = recognizer.record(source)
+            text = recognizer.recognize_google(audio, language=language)
+            return text
+    except sr.UnknownValueError:
+        return "Sorry, I couldn't understand what you said."
+    except sr.RequestError as e:
+        print(f"Error with speech recognition service: {e}")
+        return "Sorry, there was an error with the speech recognition service."
+    except Exception as e:
+        print(f"Error in transcribe_audio: {e}")
+        return "Sorry, I encountered an error while processing your speech."
+
+def export_conversation(history: List[Tuple[str, str]], format: str = "txt") -> str:
+    """Export conversation history in various formats."""
+    if not history:
+        return "No conversation to export."
+    
+    try:
+        if format == "txt":
+            # Text format
+            output = "KisaanVaani Conversation Export\n"
+            output += "=" * 30 + "\n\n"
+            for user_msg, assistant_msg in history:
+                output += f"User: {user_msg}\n"
+                output += f"KisaanVaani: {assistant_msg}\n\n"
+            return output
+        elif format == "csv":
+            # CSV format
+            df = pd.DataFrame(history, columns=["User", "KisaanVaani"])
+            return df.to_csv(index=False)
+        elif format == "json":
+            # JSON format
+            return json.dumps([{"user": user, "assistant": assistant} for user, assistant in history], indent=2)
+        else:
+            return "Unsupported format."
+    except Exception as e:
+        print(f"Error in export_conversation: {e}")
+        return "Error exporting conversation."
+
+def unified_chat_flow(message: str, show_reasoning: bool, voice_name: str) -> Tuple[List[Tuple[str, str]], Optional[bytes], Optional[str]]:
+    """Enhanced unified chat flow with proper context management."""
+    if not message.strip():
+        return [], None, None
+    
+    # Generate response using only ChatContext
+    response = generate_agent_response(message)
+    
+    # Convert response to speech
+    audio = text_to_speech(response["response"], voice_name)
+    
+    # Get the current context for display
+    current_context = chat_context.get_context()
+    display_history = [(msg["user"], msg["assistant"]) for msg in current_context]
+    
+    # Format the response for display with enhanced reasoning
+    if show_reasoning:
+        display_history[-1] = (
+            display_history[-1][0],
+            f"{display_history[-1][1]}\n\nReasoning:\n- Thought Process: {response['thought']}\n- Status: {response['status']}"
+        )
+    
+    # Generate rich search results if available
+    rich_results = None
+    if response.get("search_results"):
+        sources = response["search_results"].get("sources", [])
+        if sources:
+            rich_results = "### Search Results\n\n"
+            for source in sources:
+                rich_results += f"- [{source['title']}]({source['url']})\n"
+                rich_results += f"  {source['content'][:200]}...\n\n"
+    
+    return display_history, audio, rich_results
+
+# Create the Gradio interface
+with gr.Blocks(title="KisaanVaani - Voice Assistant") as demo:
+    gr.Markdown("# 🚜 KisaanVaani - Your AI Farming Assistant")
+    gr.Markdown("Ask me anything about farming, weather, market prices, or general knowledge!")
+    
+    with gr.Row():
+        with gr.Column():
+            # Language selection
+            language_dropdown = gr.Dropdown(
+                choices=list(SUPPORTED_LANGUAGES.keys()),
+                value="English",
+                label="Select Language"
+            )
+            
+            # Voice selection
+            voice_dropdown = gr.Dropdown(
+                choices=AVAILABLE_VOICES,
+                value="Rachel",
+                label="Select Voice"
+            )
+            
+            # Text input
+            text_input = gr.Textbox(
+                label="Type your message",
+                placeholder="Ask me anything...",
+                lines=2
+            )
+            
+            # Audio input
+            audio_input = gr.Audio(
+                label="Or speak your message",
+                type="filepath",
+                format="wav"
+            )
+            
+            # Show reasoning checkbox
+            show_reasoning = gr.Checkbox(
+                label="Show Agent's Reasoning",
+                value=False
+            )
+            
+            # Export format selection
+            export_format = gr.Dropdown(
+                choices=["txt", "csv", "json"],
+                value="txt",
+                label="Export Format"
+            )
+            
+            # Export button
+            export_btn = gr.Button("Export Conversation")
+            
+            # Clear context button
+            clear_context_btn = gr.Button("Clear Context")
+            
+            # Submit button
+            submit_btn = gr.Button("Send Message")
+        
+        with gr.Column():
+            # Chat output
+            chat_output = gr.Chatbot(
+                label="Conversation",
+                height=400
+            )
+            
+            # Audio output
+            audio_output = gr.Audio(
+                label="KisaanVaani's Response",
+                type="filepath"
+            )
+            
+            # Rich search results
+            search_results = gr.Markdown(
+                label="Search Results",
+                visible=False
+            )
+            
+            # Export output
+            export_output = gr.Textbox(
+                label="Export Result",
+                visible=False
+            )
+    
+    # Handle text input
+    submit_btn.click(
+        fn=unified_chat_flow,
+        inputs=[text_input, show_reasoning, voice_dropdown],
+        outputs=[chat_output, audio_output, search_results]
+    ).then(
+        lambda: "",  # Clear text input
+        None,
+        text_input
+    )
+    
+    # Handle audio input
+    def process_audio(audio_file: str, show_reasoning: bool, language: str, voice_name: str):
+        # First, transcribe the audio
+        transcribed_text = transcribe_audio(audio_file, language)
+        
+        # Check if transcription was successful
+        if transcribed_text.startswith("Sorry"):
+            return [], None, None
+        
+        # If transcription was successful, proceed with the chat flow
+        return unified_chat_flow(transcribed_text, show_reasoning, voice_name)
+    
+    audio_input.stop_recording(
+        fn=process_audio,
+        inputs=[audio_input, show_reasoning, language_dropdown, voice_dropdown],
+        outputs=[chat_output, audio_output, search_results]
+    ).then(
+        lambda: "",  # Clear text input
+        None,
+        text_input
+    )
+    
+    # Handle export
+    def export_current_conversation(format: str) -> str:
+        return export_conversation(chat_context.get_context(), format)
+    
+    export_btn.click(
+        fn=export_current_conversation,
+        inputs=[export_format],
+        outputs=[export_output]
+    )
+    
+    # Handle clear context
+    def clear_context():
+        chat_context.clear()
+        return [], None, None
+    
+    clear_context_btn.click(
+        fn=clear_context,
+        inputs=[],
+        outputs=[chat_output, audio_output, search_results]
+    )
+
+if __name__ == "__main__":
+    demo.launch() 
