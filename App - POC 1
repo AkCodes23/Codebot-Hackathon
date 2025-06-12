@@ -280,107 +280,223 @@ def perform_web_search(query: str, search_depth: str = "basic", max_results: int
         print(f"Web search error: {e}")
         return f"Error performing web search: {str(e)}"
 
-# --- Enhanced Tool Execution System ---
-class ToolRouter:
+# --- Enhanced Tool System ---
+class ToolSystem:
     def __init__(self):
         self.tools = {
-            "get_current_date": get_current_date,
-            "calculate_math": calculate_math,
-            "tell_joke": tell_joke,
-            "get_weather_forecast": lambda p: perform_web_search(f"weather forecast for {p.get('location')}"),
-            "get_mandi_prices": lambda p: perform_web_search(f"current price of {p.get('crop')} in {p.get('market', 'India')} mandi"),
-            "get_farming_advice": lambda p: perform_web_search(f"best farming practices for {p.get('topic')} site:agrifarming.in OR site:vikaspedia.in"),
-            "web_search": lambda p: perform_web_search(p.get("query"))
-        }
-    
-    def route_query(self, query: str, chat_history: list) -> tuple:
-        """Enhanced query routing with context awareness."""
-        query = query.lower()
-        context = self._analyze_context(chat_history)
-        
-        # Check for direct tool matches
-        tool_name, params = self._check_direct_tool_matches(query)
-        if tool_name:
-            return tool_name, params
-        
-        # Check for contextual matches
-        tool_name, params = self._check_contextual_matches(query, context)
-        if tool_name:
-            return tool_name, params
-        
-        # Default to web search for unknown queries
-        return "web_search", {"query": query}
-    
-    def _analyze_context(self, chat_history: list) -> dict:
-        """Analyze chat history for context."""
-        context = {
-            "last_topic": None,
-            "last_tool": None,
-            "repeated_queries": set(),
-            "location": None,
-            "crop": None
+            "get_current_date": self.get_current_date,
+            "calculate_math": self.calculate_math,
+            "tell_joke": self.tell_joke,
+            "get_weather_forecast": self.get_weather_forecast,
+            "get_mandi_prices": self.get_mandi_prices,
+            "get_farming_advice": self.get_farming_advice,
+            "get_crop_calendar": self.get_crop_calendar,
+            "get_fertilizer_info": self.get_fertilizer_info,
+            "get_pest_control": self.get_pest_control,
+            "get_irrigation_advice": self.get_irrigation_advice,
+            "web_search": self.perform_web_search
         }
         
-        if not chat_history:
-            return context
+        # Initialize cached clients
+        self.tavily_client = None
+        self._init_clients()
+    
+    def _init_clients(self):
+        """Initialize API clients."""
+        try:
+            if TAVILY_API_KEY:
+                from tavily import TavilyClient
+                self.tavily_client = TavilyClient(api_key=TAVILY_API_KEY)
+        except Exception as e:
+            print(f"Error initializing clients: {e}")
+    
+    def get_current_date(self, **kwargs):
+        """Get current date and time."""
+        now = datetime.datetime.now()
+        return f"Today is {now.strftime('%A, %B %d, %Y')}. The current time is {now.strftime('%I:%M %p')}."
+    
+    def calculate_math(self, expression: str, **kwargs):
+        """Calculate mathematical expressions safely."""
+        try:
+            # Clean the expression
+            expression = expression.replace('times', '*').replace('plus', '+').replace('minus', '-').replace('divided by', '/')
+            result = safe_math_eval(ast.parse(expression, mode='eval').body)
+            return f"The result of {expression} is {result}."
+        except Exception as e:
+            return f"I couldn't solve that calculation. Please provide a valid mathematical expression."
+    
+    def tell_joke(self, **kwargs):
+        """Tell a farming-related joke."""
+        jokes = [
+            "Why did the scarecrow win an award? Because he was outstanding in his field!",
+            "What do you call a sad strawberry? A blueberry!",
+            "Why don't scientists trust atoms? Because they make up everything!",
+            "What did the farmer say when he lost his tractor? 'Where's my John Deere?'",
+            "Why did the farmer win an award? Because he was outstanding in his field!"
+        ]
+        return random.choice(jokes)
+    
+    def get_weather_forecast(self, location: str = "current location", **kwargs):
+        """Get weather forecast for a location."""
+        try:
+            if not self.tavily_client:
+                return "Weather service is not configured. Please check API settings."
             
-        # Analyze last few messages for context
-        recent_messages = chat_history[-3:]
-        for msg in recent_messages:
-            if msg["role"] == "user":
-                content = msg["content"].lower()
-                # Extract potential location
-                if "in" in content:
-                    context["location"] = content.split("in")[-1].strip()
-                # Extract potential crop
-                if any(word in content for word in ["crop", "plant", "harvest"]):
-                    context["crop"] = content.split()[0]
-        
-        return context
+            query = f"current weather forecast for {location}"
+            response = self.tavily_client.search(
+                query=query,
+                search_depth="basic",
+                max_results=3,
+                include_answer=True
+            )
+            
+            if response.get("answer"):
+                return response["answer"]
+            return f"I couldn't find weather information for {location}. Please try again with a different location."
+        except Exception as e:
+            return f"Error getting weather forecast: {str(e)}"
     
-    def _check_direct_tool_matches(self, query: str) -> tuple:
-        """Check for direct tool matches in query."""
-        # Date queries
-        if any(word in query for word in ['date', 'today', 'day', 'time']):
-            return 'get_current_date', {}
-        
-        # Math queries
-        if any(word in query for word in ['calculate', 'math', 'plus', 'minus', 'multiply', 'divide']):
-            try:
-                math_pattern = r'(\d+\s*[\+\-\*\/]\s*\d+)'
-                match = re.search(math_pattern, query)
-                if match:
-                    return 'calculate_math', {'expression': match.group(1)}
-            except Exception as e:
-                print(f"Math pattern matching error: {e}")
-        
-        # Joke queries
-        if any(word in query for word in ['joke', 'funny', 'humor']):
-            return 'tell_joke', {}
-        
-        return None, {}
+    def get_mandi_prices(self, crop: str, market: str = "India", **kwargs):
+        """Get mandi prices for crops."""
+        try:
+            if not self.tavily_client:
+                return "Mandi price service is not configured. Please check API settings."
+            
+            query = f"current mandi prices for {crop} in {market}"
+            response = self.tavily_client.search(
+                query=query,
+                search_depth="basic",
+                max_results=3,
+                include_answer=True
+            )
+            
+            if response.get("answer"):
+                return response["answer"]
+            return f"I couldn't find mandi prices for {crop} in {market}. Please try again with different parameters."
+        except Exception as e:
+            return f"Error getting mandi prices: {str(e)}"
     
-    def _check_contextual_matches(self, query: str, context: dict) -> tuple:
-        """Check for contextual tool matches."""
-        # Weather queries
-        if any(word in query for word in ['weather', 'forecast', 'temperature', 'rain']):
-            location = context.get("location") or query.split('in')[-1].strip() if 'in' in query else 'current location'
-            return 'get_weather_forecast', {'location': location}
-        
-        # Mandi price queries
-        if any(word in query for word in ['mandi', 'price', 'rate', 'bhav']):
-            crop = context.get("crop") or query.split()[0]
-            market = context.get("location") or 'India'
-            return 'get_mandi_prices', {'crop': crop, 'market': market}
-        
-        # Farming advice
-        if any(word in query for word in ['farming', 'agriculture', 'crop', 'plant', 'harvest']):
-            return 'get_farming_advice', {'topic': query}
-        
-        return None, {}
+    def get_farming_advice(self, topic: str, **kwargs):
+        """Get farming advice for a specific topic."""
+        try:
+            if not self.tavily_client:
+                return "Farming advice service is not configured. Please check API settings."
+            
+            query = f"best farming practices for {topic} site:agrifarming.in OR site:vikaspedia.in"
+            response = self.tavily_client.search(
+                query=query,
+                search_depth="advanced",
+                max_results=3,
+                include_answer=True
+            )
+            
+            if response.get("answer"):
+                return response["answer"]
+            return f"I couldn't find specific farming advice for {topic}. Please try a different topic."
+        except Exception as e:
+            return f"Error getting farming advice: {str(e)}"
+    
+    def get_crop_calendar(self, crop: str, **kwargs):
+        """Get crop calendar information."""
+        try:
+            if not self.tavily_client:
+                return "Crop calendar service is not configured. Please check API settings."
+            
+            query = f"growing season and calendar for {crop} in India"
+            response = self.tavily_client.search(
+                query=query,
+                search_depth="advanced",
+                max_results=3,
+                include_answer=True
+            )
+            
+            if response.get("answer"):
+                return response["answer"]
+            return f"I couldn't find crop calendar information for {crop}. Please try a different crop."
+        except Exception as e:
+            return f"Error getting crop calendar: {str(e)}"
+    
+    def get_fertilizer_info(self, crop: str, **kwargs):
+        """Get fertilizer information for a crop."""
+        try:
+            if not self.tavily_client:
+                return "Fertilizer information service is not configured. Please check API settings."
+            
+            query = f"recommended fertilizers and nutrients for {crop} farming"
+            response = self.tavily_client.search(
+                query=query,
+                search_depth="advanced",
+                max_results=3,
+                include_answer=True
+            )
+            
+            if response.get("answer"):
+                return response["answer"]
+            return f"I couldn't find fertilizer information for {crop}. Please try a different crop."
+        except Exception as e:
+            return f"Error getting fertilizer information: {str(e)}"
+    
+    def get_pest_control(self, crop: str, **kwargs):
+        """Get pest control information for a crop."""
+        try:
+            if not self.tavily_client:
+                return "Pest control service is not configured. Please check API settings."
+            
+            query = f"common pests and pest control methods for {crop} farming"
+            response = self.tavily_client.search(
+                query=query,
+                search_depth="advanced",
+                max_results=3,
+                include_answer=True
+            )
+            
+            if response.get("answer"):
+                return response["answer"]
+            return f"I couldn't find pest control information for {crop}. Please try a different crop."
+        except Exception as e:
+            return f"Error getting pest control information: {str(e)}"
+    
+    def get_irrigation_advice(self, crop: str, **kwargs):
+        """Get irrigation advice for a crop."""
+        try:
+            if not self.tavily_client:
+                return "Irrigation advice service is not configured. Please check API settings."
+            
+            query = f"irrigation requirements and methods for {crop} farming"
+            response = self.tavily_client.search(
+                query=query,
+                search_depth="advanced",
+                max_results=3,
+                include_answer=True
+            )
+            
+            if response.get("answer"):
+                return response["answer"]
+            return f"I couldn't find irrigation advice for {crop}. Please try a different crop."
+        except Exception as e:
+            return f"Error getting irrigation advice: {str(e)}"
+    
+    def perform_web_search(self, query: str, **kwargs):
+        """Perform general web search."""
+        try:
+            if not self.tavily_client:
+                return "Web search service is not configured. Please check API settings."
+            
+            response = self.tavily_client.search(
+                query=query,
+                search_depth="basic",
+                max_results=3,
+                include_answer=True
+            )
+            
+            if response.get("answer"):
+                return response["answer"]
+            return "\n".join([f"Source {i+1}: {res['content']}" for i, res in enumerate(response['results'])])
+        except Exception as e:
+            return f"Error performing web search: {str(e)}"
     
     def execute_tool(self, tool_name: str, params: dict) -> str:
-        """Execute the selected tool with parameters."""
+        """Execute a tool with parameters."""
         if tool_name not in self.tools:
             return f"Error: Unknown tool {tool_name}"
         
@@ -392,10 +508,10 @@ class ToolRouter:
             print(f"Tool execution error: {e}")
             return f"Error executing {tool_name}: {str(e)}"
 
-# Initialize tool router
-tool_router = ToolRouter()
+# Initialize tool system
+tool_system = ToolSystem()
 
-# Modify get_groq_response_st to use enhanced tool execution
+# Modify get_groq_response_st to use the enhanced tool system
 def get_groq_response_st(user_query):
     if 'groq_client' not in st.session_state or st.session_state.groq_client is None:
         print("Groq: LLM client not initialized in session state.")
@@ -407,23 +523,26 @@ def get_groq_response_st(user_query):
         chat_context = st.session_state.chat_history[-4:] if len(st.session_state.chat_history) > 4 else st.session_state.chat_history
         context_str = "\n".join([f"{msg['role']}: {msg['content']}" for msg in chat_context])
         
-        # Route query to appropriate tool
-        tool_name, tool_params = tool_router.route_query(user_query, chat_context)
-        
-        # Execute tool
-        tool_response = tool_router.execute_tool(tool_name, tool_params)
-        
-        # Enhanced system prompt with context and tool information
+        # Enhanced system prompt with tool capabilities
         system_prompt = f"""You are KisaanVaani, a helpful voice assistant for farmers. 
 Recent conversation history for context:
 {context_str}
 
-Tool used: {tool_name}
-Tool parameters: {tool_params}
-Tool response: {tool_response}
+You have access to the following tools:
+- get_current_date(): Get today's date and time
+- calculate_math(expression): Solve mathematical expressions
+- tell_joke(): Tell a farming-related joke
+- get_weather_forecast(location): Get weather forecast
+- get_mandi_prices(crop, market): Get mandi prices
+- get_farming_advice(topic): Get farming advice
+- get_crop_calendar(crop): Get crop calendar information
+- get_fertilizer_info(crop): Get fertilizer information
+- get_pest_control(crop): Get pest control information
+- get_irrigation_advice(crop): Get irrigation advice
+- web_search(query): Perform general web search
 
+Analyze the user's query and determine which tool to use. Extract relevant parameters from the query.
 Provide a natural, conversational response based on the tool's output.
-If the tool response indicates an error or "under development", explain this to the user politely.
 Keep responses concise and focused on farming/agriculture when relevant.
 Always maintain context from the conversation history."""
 
@@ -433,6 +552,7 @@ Always maintain context from the conversation history."""
             {"role": "user", "content": user_query}
         ]
         
+        # Get initial response from LLM
         chat_completion = client.chat.completions.create(
             messages=messages,
             model="llama3-8b-8192",
@@ -442,8 +562,105 @@ Always maintain context from the conversation history."""
             stream=False
         )
         
-        response = chat_completion.choices[0].message.content
-        return response
+        initial_response = chat_completion.choices[0].message.content
+        
+        # Extract tool and parameters from LLM response
+        tool_name = None
+        tool_params = {}
+        
+        # Simple pattern matching for tool selection
+        query_lower = user_query.lower()
+        
+        # Date queries
+        if any(word in query_lower for word in ['date', 'today', 'day', 'time']):
+            tool_name = "get_current_date"
+        
+        # Math queries
+        elif any(word in query_lower for word in ['calculate', 'math', 'plus', 'minus', 'multiply', 'divide']):
+            tool_name = "calculate_math"
+            try:
+                math_pattern = r'(\d+\s*[\+\-\*\/]\s*\d+)'
+                match = re.search(math_pattern, query_lower)
+                if match:
+                    tool_params['expression'] = match.group(1)
+            except Exception as e:
+                print(f"Math pattern matching error: {e}")
+        
+        # Joke queries
+        elif any(word in query_lower for word in ['joke', 'funny', 'humor']):
+            tool_name = "tell_joke"
+        
+        # Weather queries
+        elif any(word in query_lower for word in ['weather', 'forecast', 'temperature', 'rain']):
+            tool_name = "get_weather_forecast"
+            location = query_lower.split('in')[-1].strip() if 'in' in query_lower else 'current location'
+            tool_params['location'] = location
+        
+        # Mandi price queries
+        elif any(word in query_lower for word in ['mandi', 'price', 'rate', 'bhav']):
+            tool_name = "get_mandi_prices"
+            if 'in' in query_lower:
+                parts = query_lower.split('in')
+                tool_params['crop'] = parts[0].strip()
+                tool_params['market'] = parts[1].strip()
+            else:
+                tool_params['crop'] = query_lower.split()[0]
+                tool_params['market'] = 'India'
+        
+        # Farming advice queries
+        elif any(word in query_lower for word in ['farming', 'agriculture', 'crop', 'plant', 'harvest']):
+            tool_name = "get_farming_advice"
+            tool_params['topic'] = query_lower
+        
+        # Crop calendar queries
+        elif any(word in query_lower for word in ['calendar', 'season', 'growing']):
+            tool_name = "get_crop_calendar"
+            tool_params['crop'] = query_lower.split()[0]
+        
+        # Fertilizer queries
+        elif any(word in query_lower for word in ['fertilizer', 'nutrient', 'fertilize']):
+            tool_name = "get_fertilizer_info"
+            tool_params['crop'] = query_lower.split()[0]
+        
+        # Pest control queries
+        elif any(word in query_lower for word in ['pest', 'disease', 'control']):
+            tool_name = "get_pest_control"
+            tool_params['crop'] = query_lower.split()[0]
+        
+        # Irrigation queries
+        elif any(word in query_lower for word in ['irrigation', 'water', 'irrigate']):
+            tool_name = "get_irrigation_advice"
+            tool_params['crop'] = query_lower.split()[0]
+        
+        # Default to web search
+        else:
+            tool_name = "web_search"
+            tool_params['query'] = user_query
+        
+        # Execute tool if one was selected
+        if tool_name:
+            tool_response = tool_system.execute_tool(tool_name, tool_params)
+            
+            # Get final response from LLM with tool output
+            final_messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_query},
+                {"role": "assistant", "content": f"Tool used: {tool_name}\nTool response: {tool_response}"}
+            ]
+            
+            final_completion = client.chat.completions.create(
+                messages=final_messages,
+                model="llama3-8b-8192",
+                temperature=0.7,
+                max_tokens=250,
+                top_p=1,
+                stream=False
+            )
+            
+            return final_completion.choices[0].message.content
+        
+        return initial_response
+        
     except Exception as e:
         print(f"Groq: !!! CRITICAL API ERROR during Groq call: {e} !!!")
         return KNOWN_FALLBACK_RESPONSES[2]
