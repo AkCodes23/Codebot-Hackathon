@@ -129,6 +129,7 @@ def setup_logging():
         root_logger.addHandler(handler_console)
 setup_logging()
 logger = logging.getLogger('kisaanvaani')
+context_logger = logging.getLogger('kisaanvaani.context')
 voice_logger = logging.getLogger('kisaanvaani.voice')
 tool_logger = logging.getLogger('kisaanvaani.tools')
 agent_logger = logging.getLogger('kisaanvaani.agent')
@@ -852,11 +853,11 @@ class GradioApp:
             yield {text_input: ""} # Clear input box immediately
             yield from handle_interaction(text_input, chat_history, settings)
         
-        if conversation_state != AppState.LISTENING or not should_listen:
-            logger.info("Audio ignored because conversation is not in LISTENING mode.")
-            return
 
         def process_audio_input(audio_filepath: Optional[str], chat_history: list, settings: Dict[str, Any], conversation_state, should_listen, has_greeted):
+            if conversation_state != AppState.LISTENING or not should_listen:
+                logger.info("Audio ignored because conversation is not in LISTENING mode.")
+                return
             if not audio_filepath:
                 chat_history.append([None, "No audio recorded. Please try again."])
                 yield {chatbot: chat_history}
