@@ -18,9 +18,8 @@ from typing import Dict, Any, Optional, List, Tuple
 import requests
 import unicodedata
 from collections import OrderedDict
+import certifi
 
-from dotenv import load_dotenv
-load_dotenv()   # ← will read WEATHERAPI_KEY from .env
 
 # Configure logging
 logging.basicConfig(
@@ -43,8 +42,6 @@ context_logger = logging.getLogger('kisaanvaani.context')
 # ENSURE THIS IS YOUR VALID, WORKING GROQ API KEY
 GROQ_API_KEY = "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"
 TAVILY_API_KEY = "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"
-WEATHERAPI_KEY = "97b5a6ef03ac47dbbc6110927252706"
-tool_logger.info(f"WEATHERAPI_KEY at runtime: {repr(WEATHERAPI_KEY)}")
 
 SUPPORTED_LANGUAGES = {
     "english": "en",
@@ -422,10 +419,12 @@ class ToolSystem:
         self._metrics.inc_counter('weather.cache.miss')
 
         # 3. API Call Preparation
-        WEATHERAPI_KEY = os.getenv("WEATHERAPI_KEY")
-        if not WEATHERAPI_KEY:
-            tool_logger.error("API key for weather service is not configured.", extra={"tool": "weather", "code": "KEY_MISSING"})
-            return {"success": False, "message": "The weather service isn't set up correctly.", "error": "WeatherAPI key not found in environment variables.", "code": "KEY_MISSING"}
+        # WEATHERAPI_KEY = os.getenv("WEATHERAPI_KEY")
+        # if not WEATHERAPI_KEY:
+        #     tool_logger.error("API key for weather service is not configured.", extra={"tool": "weather", "code": "KEY_MISSING"})
+        #     return {"success": False, "message": "The weather service isn't set up correctly.", "error": "WeatherAPI key not found in environment variables.", "code": "KEY_MISSING"}
+        WEATHERAPI_KEY = "811763061bc547eaafb215343252706"
+
 
         endpoint = "/v1/forecast.json" if include_forecast else "/v1/current.json"
         params = {"key": WEATHERAPI_KEY, "q": loc_key}
@@ -437,7 +436,7 @@ class ToolSystem:
         for attempt in range(self.MAX_RETRIES):
             start_time = time.time()
             try:
-                response = self._weather_requests_session.get(f"https://api.weatherapi.com{endpoint}", params=params, timeout=5)
+                response = self._weather_requests_session.get(f"https://api.weatherapi.com{endpoint}", params=params, timeout=5, verify=certifi.where())
                 self._metrics.observe_timer('weather.api.latency', time.time() - start_time)
 
                 if response.status_code == 200:
