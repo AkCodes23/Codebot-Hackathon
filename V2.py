@@ -418,10 +418,12 @@ class ToolSystem:
         self._metrics.inc_counter('weather.cache.miss')
 
         # 3. API Call Preparation
-        WEATHERAPI_KEY = os.getenv("WEATHERAPI_KEY")
-        if not WEATHERAPI_KEY:
-            tool_logger.error("API key for weather service is not configured.", extra={"tool": "weather", "code": "KEY_MISSING"})
-            return {"success": False, "message": "The weather service isn't set up correctly.", "error": "WeatherAPI key not found in environment variables.", "code": "KEY_MISSING"}
+        # WEATHERAPI_KEY = os.getenv("WEATHERAPI_KEY")
+        # if not WEATHERAPI_KEY:
+        #     tool_logger.error("API key for weather service is not configured.", extra={"tool": "weather", "code": "KEY_MISSING"})
+        #     return {"success": False, "message": "The weather service isn't set up correctly.", "error": "WeatherAPI key not found in environment variables.", "code": "KEY_MISSING"}
+        WEATHERAPI_KEY = "811763061bc547eaafb215343252706"
+
 
         endpoint = "/v1/forecast.json" if include_forecast else "/v1/current.json"
         params = {"key": WEATHERAPI_KEY, "q": loc_key}

@@ -1398,3 +1398,152 @@ To determ...': run loop already started
 2025-06-28 05:03:45,213 - kisaanvaani.voice - INFO - TTS Thread: pyttsx3 engine stopped for this utterance.
 2025-06-28 05:03:51,214 - kisaanvaani - INFO - Main: Finished sleep after TTS call for 'Growing rice, eh? Well, I'd be...'.
 2025-06-28 05:03:51,214 - kisaanvaani - INFO - handle_user_input finished processing. Rerunning UI.
+2025-06-28 17:53:39,116 - kisaanvaani - INFO - Main: Groq client initialized successfully.
+2025-06-28 17:53:39,117 - kisaanvaani.context - INFO - ChatContext initialized
+2025-06-28 17:53:39,117 - kisaanvaani - INFO - Main: Session state variables initialized.
+2025-06-28 17:53:39,149 - kisaanvaani - INFO - Main: Displaying one-time initial app greeting (text mode, chat empty).
+2025-06-28 17:53:39,149 - kisaanvaani - INFO - Main: Active threads before starting new speech: 5
+2025-06-28 17:53:39,150 - kisaanvaani - INFO - Main: Speech thread successfully started for 'Hello! I am KisaanVaani. Start a voice conversation or type your query...'
+2025-06-28 17:53:39,151 - kisaanvaani - INFO - Main: Main thread will sleep for 5.30s to allow TTS thread to complete ('Hello! I am KisaanVaani. Start...').
+2025-06-28 17:53:39,215 - kisaanvaani.voice - INFO - TTS Thread: Found voice for en: English (Caribbean)
+2025-06-28 17:53:39,215 - kisaanvaani.voice - INFO - TTS Thread: Attempting to speak: 'Hello! I am KisaanVaani. Start a voice conversation or type your query...' (Lang: en)
+2025-06-28 17:53:39,226 - kisaanvaani.voice - INFO - TTS Thread: Finished speaking: 'Hello! I am KisaanVaani. Start a voice conversation or type your query...'
+2025-06-28 17:53:44,456 - kisaanvaani - INFO - Main: Finished sleep after TTS call for 'Hello! I am KisaanVaani. Start...'.
+2025-06-28 17:53:45,103 - kisaanvaani.voice - INFO - TTS Thread: pyttsx3 engine stopped for this utterance.
+2025-06-28 17:53:50,397 - kisaanvaani - INFO - Main: Text input: 'weather in mumbai...'
+2025-06-28 17:53:50,398 - kisaanvaani - INFO - Handling input (Type: text): 'weather in mumbai...'
+2025-06-28 17:53:50,399 - kisaanvaani.agent - INFO - Processing query: weather in mumbai...
+2025-06-28 17:53:51,132 - httpx - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-28 17:53:51,143 - kisaanvaani.agent - INFO - Tool selection: get_weather_forecast (confidence: 0.90)
+2025-06-28 17:53:51,143 - kisaanvaani.agent - INFO - Calling tool_system.execute_tool with get_weather_forecast and {'location': 'Mumbai'}
+2025-06-28 17:53:51,144 - kisaanvaani.tools - INFO - Executing tool: get_weather_forecast with parameters: {'location': 'Mumbai'}
+2025-06-28 17:53:51,145 - kisaanvaani.tools - ERROR - API key for weather service is not configured.
+2025-06-28 17:53:51,146 - kisaanvaani.tools - INFO - Tool get_weather_forecast executed successfully
+2025-06-28 17:53:51,692 - httpx - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-28 17:53:51,694 - kisaanvaani.agent - INFO - Final answer generated: So you're looking for the weather in Mumbai! Unfortunately, I'm having some trouble getting the late...
+2025-06-28 17:53:51,695 - kisaanvaani - INFO - Main: Active threads before starting new speech: 5
+2025-06-28 17:53:51,696 - kisaanvaani - INFO - Main: Speech thread successfully started for 'So you're looking for the weather in Mumbai! Unfortunately, I'm having...'
+2025-06-28 17:53:51,696 - kisaanvaani - INFO - Main: Main thread will sleep for 6.00s to allow TTS thread to complete ('So you're looking for the weat...').
+2025-06-28 17:53:51,704 - kisaanvaani.voice - INFO - TTS Thread: Found voice for en: English (Caribbean)
+2025-06-28 17:53:51,705 - kisaanvaani.voice - INFO - TTS Thread: Attempting to speak: 'So you're looking for the weather in Mumbai! Unfortunately, I'm having...' (Lang: en)
+2025-06-28 17:53:51,716 - kisaanvaani.voice - INFO - TTS Thread: Finished speaking: 'So you're looking for the weather in Mumbai! Unfortunately, I'm having...'
+2025-06-28 17:53:57,703 - kisaanvaani - INFO - Main: Finished sleep after TTS call for 'So you're looking for the weat...'.
+2025-06-28 17:53:57,703 - kisaanvaani - INFO - handle_user_input finished processing. Rerunning UI.
+2025-06-28 17:54:11,788 - kisaanvaani - INFO - Main: Text input: 'hows the weather forecast in mumbai...'
+2025-06-28 17:54:11,788 - kisaanvaani - INFO - Handling input (Type: text): 'hows the weather forecast in mumbai...'
+2025-06-28 17:54:11,788 - kisaanvaani.agent - INFO - Processing query: hows the weather forecast in mumbai...
+2025-06-28 17:54:12,510 - httpx - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-28 17:54:12,511 - kisaanvaani.agent - INFO - Tool selection: web_search (confidence: 0.80)
+2025-06-28 17:54:12,511 - kisaanvaani.agent - INFO - Calling tool_system.execute_tool with web_search and {'query': 'weather forecast in Mumbai'}
+2025-06-28 17:54:12,511 - kisaanvaani.tools - INFO - Executing tool: web_search with parameters: {'query': 'weather forecast in Mumbai'}
+2025-06-28 17:54:12,511 - kisaanvaani.tools - ERROR - Web search error: No module named 'tavily'
+2025-06-28 17:54:12,511 - kisaanvaani.tools - INFO - Tool web_search executed successfully
+2025-06-28 17:54:13,168 - httpx - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-28 17:54:13,169 - kisaanvaani.agent - INFO - Final answer generated: I'm so sorry, but I'm having some trouble getting the latest weather forecast for Mumbai. Unfortunat...
+2025-06-28 17:54:13,169 - kisaanvaani - INFO - Main: Active threads before starting new speech: 6
+2025-06-28 17:54:13,169 - kisaanvaani - INFO - Main: Speech thread successfully started for 'I'm so sorry, but I'm having some trouble getting the latest weather f...'
+2025-06-28 17:54:13,169 - kisaanvaani - INFO - Main: Main thread will sleep for 6.00s to allow TTS thread to complete ('I'm so sorry, but I'm having s...').
+2025-06-28 17:54:13,171 - kisaanvaani.voice - INFO - TTS Thread: Found voice for en: English (Caribbean)
+2025-06-28 17:54:13,171 - kisaanvaani.voice - INFO - TTS Thread: Attempting to speak: 'I'm so sorry, but I'm having some trouble getting the latest weather f...' (Lang: en)
+2025-06-28 17:54:19,176 - kisaanvaani - INFO - Main: Finished sleep after TTS call for 'I'm so sorry, but I'm having s...'.
+2025-06-28 17:54:19,176 - kisaanvaani - INFO - handle_user_input finished processing. Rerunning UI.
+2025-06-28 17:54:31,910 - kisaanvaani.voice - INFO - TTS Thread: pyttsx3 engine stopped for this utterance.
+2025-06-28 17:54:49,135 - kisaanvaani - INFO - Main: Text input: 'hows the weather in delhi in 2 days ...'
+2025-06-28 17:54:49,136 - kisaanvaani - INFO - Handling input (Type: text): 'hows the weather in delhi in 2 days ...'
+2025-06-28 17:54:49,136 - kisaanvaani.agent - INFO - Processing query: hows the weather in delhi in 2 days ...
+2025-06-28 17:54:49,929 - httpx - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-28 17:54:49,932 - kisaanvaani.agent - INFO - Tool selection: get_weather_forecast (confidence: 0.90)
+2025-06-28 17:54:49,932 - kisaanvaani.agent - INFO - Calling tool_system.execute_tool with get_weather_forecast and {'location': 'Delhi', 'include_forecast': True}
+2025-06-28 17:54:49,933 - kisaanvaani.tools - INFO - Executing tool: get_weather_forecast with parameters: {'location': 'Delhi', 'include_forecast': True}
+2025-06-28 17:54:49,933 - kisaanvaani.tools - ERROR - API key for weather service is not configured.
+2025-06-28 17:54:49,933 - kisaanvaani.tools - INFO - Tool get_weather_forecast executed successfully
+2025-06-28 17:54:50,524 - httpx - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-28 17:54:50,525 - kisaanvaani.agent - INFO - Final answer generated: I'm happy to help you with that! Unfortunately, I'm having some trouble getting the latest weather f...
+2025-06-28 17:54:50,526 - kisaanvaani - INFO - Main: Active threads before starting new speech: 6
+2025-06-28 17:54:50,527 - kisaanvaani - INFO - Main: Speech thread successfully started for 'I'm happy to help you with that! Unfortunately, I'm having some troubl...'
+2025-06-28 17:54:50,527 - kisaanvaani - INFO - Main: Main thread will sleep for 6.00s to allow TTS thread to complete ('I'm happy to help you with tha...').
+2025-06-28 17:54:50,533 - kisaanvaani.voice - INFO - TTS Thread: Found voice for en: English (Caribbean)
+2025-06-28 17:54:50,534 - kisaanvaani.voice - INFO - TTS Thread: Attempting to speak: 'I'm happy to help you with that! Unfortunately, I'm having some troubl...' (Lang: en)
+2025-06-28 17:54:50,534 - kisaanvaani.voice - ERROR - TTS Thread: ERROR during speech for 'I'm happy to help you with that! Unfortunately, I'm having some troubl...': run loop already started
+2025-06-28 17:54:50,534 - kisaanvaani.voice - INFO - TTS Thread: pyttsx3 engine stopped for this utterance.
+2025-06-28 17:54:56,533 - kisaanvaani - INFO - Main: Finished sleep after TTS call for 'I'm happy to help you with tha...'.
+2025-06-28 17:54:56,533 - kisaanvaani - INFO - handle_user_input finished processing. Rerunning UI.
+2025-06-28 17:56:05,148 - kisaanvaani - INFO - Main: Groq client initialized successfully.
+2025-06-28 17:56:05,149 - kisaanvaani.context - INFO - ChatContext initialized
+2025-06-28 17:56:05,149 - kisaanvaani - INFO - Main: Session state variables initialized.
+2025-06-28 17:56:05,181 - kisaanvaani - INFO - Main: Displaying one-time initial app greeting (text mode, chat empty).
+2025-06-28 17:56:05,181 - kisaanvaani - INFO - Main: Active threads before starting new speech: 5
+2025-06-28 17:56:05,182 - kisaanvaani - INFO - Main: Speech thread successfully started for 'Hello! I am KisaanVaani. Start a voice conversation or type your query...'
+2025-06-28 17:56:05,182 - kisaanvaani - INFO - Main: Main thread will sleep for 5.30s to allow TTS thread to complete ('Hello! I am KisaanVaani. Start...').
+2025-06-28 17:56:05,198 - kisaanvaani.voice - INFO - TTS Thread: Found voice for en: English (Caribbean)
+2025-06-28 17:56:05,198 - kisaanvaani.voice - INFO - TTS Thread: Attempting to speak: 'Hello! I am KisaanVaani. Start a voice conversation or type your query...' (Lang: en)
+2025-06-28 17:56:05,209 - kisaanvaani.voice - INFO - TTS Thread: Finished speaking: 'Hello! I am KisaanVaani. Start a voice conversation or type your query...'
+2025-06-28 17:56:10,204 - kisaanvaani - INFO - Main: Text input: 'what is the weather in delhi...'
+2025-06-28 17:56:10,205 - kisaanvaani - INFO - Handling input (Type: text): 'what is the weather in delhi...'
+2025-06-28 17:56:10,206 - kisaanvaani.agent - INFO - Processing query: what is the weather in delhi...
+2025-06-28 17:56:10,488 - kisaanvaani - INFO - Main: Finished sleep after TTS call for 'Hello! I am KisaanVaani. Start...'.
+2025-06-28 17:56:10,982 - kisaanvaani.voice - INFO - TTS Thread: pyttsx3 engine stopped for this utterance.
+2025-06-28 17:56:11,030 - httpx - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-28 17:56:11,032 - kisaanvaani.agent - INFO - Tool selection: get_weather_forecast (confidence: 0.90)
+2025-06-28 17:56:11,032 - kisaanvaani.agent - INFO - Calling tool_system.execute_tool with get_weather_forecast and {'location': 'Delhi', 'include_forecast': True}
+2025-06-28 17:56:11,032 - kisaanvaani.tools - INFO - Executing tool: get_weather_forecast with parameters: {'location': 'Delhi', 'include_forecast': True}
+2025-06-28 17:56:11,543 - kisaanvaani.tools - INFO - Tool get_weather_forecast executed successfully
+2025-06-28 17:56:12,154 - httpx - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-28 17:56:12,156 - kisaanvaani.agent - INFO - Final answer generated: I've got the latest weather update for you! According to my sources, in Delhi, it's currently Cloudy...
+2025-06-28 17:56:12,157 - kisaanvaani - INFO - Main: Active threads before starting new speech: 5
+2025-06-28 17:56:12,158 - kisaanvaani - INFO - Main: Speech thread successfully started for 'I've got the latest weather update for you! According to my sources, i...'
+2025-06-28 17:56:12,158 - kisaanvaani - INFO - Main: Main thread will sleep for 6.00s to allow TTS thread to complete ('I've got the latest weather up...').
+2025-06-28 17:56:12,164 - kisaanvaani.voice - INFO - TTS Thread: Found voice for en: English (Caribbean)
+2025-06-28 17:56:12,164 - kisaanvaani.voice - INFO - TTS Thread: Attempting to speak: 'I've got the latest weather update for you! According to my sources, i...' (Lang: en)
+2025-06-28 17:56:12,174 - kisaanvaani.voice - INFO - TTS Thread: Finished speaking: 'I've got the latest weather update for you! According to my sources, i...'
+2025-06-28 17:56:18,164 - kisaanvaani - INFO - Main: Finished sleep after TTS call for 'I've got the latest weather up...'.
+2025-06-28 17:56:18,164 - kisaanvaani - INFO - handle_user_input finished processing. Rerunning UI.
+2025-06-28 17:56:24,336 - kisaanvaani - INFO - Main: Text input: 'weather in mumbai...'
+2025-06-28 17:56:24,338 - kisaanvaani - INFO - Handling input (Type: text): 'weather in mumbai...'
+2025-06-28 17:56:24,339 - kisaanvaani.agent - INFO - Processing query: weather in mumbai...
+2025-06-28 17:56:25,162 - httpx - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-28 17:56:25,163 - kisaanvaani.agent - INFO - Tool selection: get_weather_forecast (confidence: 1.00)
+2025-06-28 17:56:25,164 - kisaanvaani.agent - INFO - Calling tool_system.execute_tool with get_weather_forecast and {'location': 'Mumbai'}
+2025-06-28 17:56:25,164 - kisaanvaani.tools - INFO - Executing tool: get_weather_forecast with parameters: {'location': 'Mumbai'}
+2025-06-28 17:56:25,595 - kisaanvaani.tools - INFO - Tool get_weather_forecast executed successfully
+2025-06-28 17:56:26,284 - httpx - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-28 17:56:26,286 - kisaanvaani.agent - INFO - Final answer generated: I've got the latest weather update for you! According to my sources, in Mumbai, it's currently Misty...
+2025-06-28 17:56:26,287 - kisaanvaani - INFO - Main: Active threads before starting new speech: 6
+2025-06-28 17:56:26,288 - kisaanvaani - INFO - Main: Speech thread successfully started for 'I've got the latest weather update for you! According to my sources, i...'
+2025-06-28 17:56:26,288 - kisaanvaani - INFO - Main: Main thread will sleep for 6.00s to allow TTS thread to complete ('I've got the latest weather up...').
+2025-06-28 17:56:26,292 - kisaanvaani.voice - INFO - TTS Thread: Found voice for en: English (Caribbean)
+2025-06-28 17:56:26,292 - kisaanvaani.voice - INFO - TTS Thread: Attempting to speak: 'I've got the latest weather update for you! According to my sources, i...' (Lang: en)
+2025-06-28 17:56:32,294 - kisaanvaani - INFO - Main: Finished sleep after TTS call for 'I've got the latest weather up...'.
+2025-06-28 17:56:32,295 - kisaanvaani - INFO - handle_user_input finished processing. Rerunning UI.
+2025-06-28 17:56:54,112 - kisaanvaani.voice - INFO - TTS Thread: pyttsx3 engine stopped for this utterance.
+2025-06-28 21:38:11,173 - kisaanvaani - INFO - Main: Groq client initialized successfully.
+2025-06-28 21:38:11,175 - kisaanvaani.context - INFO - ChatContext initialized
+2025-06-28 21:38:11,176 - kisaanvaani - INFO - Main: Session state variables initialized.
+2025-06-28 21:38:11,215 - kisaanvaani - INFO - Main: Displaying one-time initial app greeting (text mode, chat empty).
+2025-06-28 21:38:11,216 - kisaanvaani - INFO - Main: Active threads before starting new speech: 5
+2025-06-28 21:38:11,217 - kisaanvaani - INFO - Main: Speech thread successfully started for 'Hello! I am KisaanVaani. Start a voice conversation or type your query...'
+2025-06-28 21:38:11,218 - kisaanvaani - INFO - Main: Main thread will sleep for 5.30s to allow TTS thread to complete ('Hello! I am KisaanVaani. Start...').
+2025-06-28 21:38:11,229 - kisaanvaani.voice - INFO - TTS Thread: Found voice for en: English (Caribbean)
+2025-06-28 21:38:11,229 - kisaanvaani.voice - INFO - TTS Thread: Attempting to speak: 'Hello! I am KisaanVaani. Start a voice conversation or type your query...' (Lang: en)
+2025-06-28 21:38:11,240 - kisaanvaani.voice - INFO - TTS Thread: Finished speaking: 'Hello! I am KisaanVaani. Start a voice conversation or type your query...'
+2025-06-28 21:38:16,523 - kisaanvaani - INFO - Main: Finished sleep after TTS call for 'Hello! I am KisaanVaani. Start...'.
+2025-06-28 21:38:17,164 - kisaanvaani.voice - INFO - TTS Thread: pyttsx3 engine stopped for this utterance.
+2025-06-28 21:38:24,499 - kisaanvaani - INFO - Main: Text input: 'weather in mumbai...'
+2025-06-28 21:38:24,499 - kisaanvaani - INFO - Handling input (Type: text): 'weather in mumbai...'
+2025-06-28 21:38:24,499 - kisaanvaani.agent - INFO - Processing query: weather in mumbai...
+2025-06-28 21:38:25,211 - httpx - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-28 21:38:25,212 - kisaanvaani.agent - INFO - Tool selection: get_weather_forecast (confidence: 0.90)
+2025-06-28 21:38:25,213 - kisaanvaani.agent - INFO - Calling tool_system.execute_tool with get_weather_forecast and {'location': 'Mumbai'}
+2025-06-28 21:38:25,213 - kisaanvaani.tools - INFO - Executing tool: get_weather_forecast with parameters: {'location': 'Mumbai'}
+2025-06-28 21:38:25,767 - kisaanvaani.tools - INFO - Tool get_weather_forecast executed successfully
+2025-06-28 21:38:26,298 - httpx - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-28 21:38:26,299 - kisaanvaani.agent - INFO - Final answer generated: Hey there! I've got the latest weather update for you from Mumbai. According to my sources, it's cur...
+2025-06-28 21:38:26,299 - kisaanvaani - INFO - Main: Active threads before starting new speech: 5
+2025-06-28 21:38:26,299 - kisaanvaani - INFO - Main: Speech thread successfully started for 'Hey there! I've got the latest weather update for you from Mumbai. Acc...'
+2025-06-28 21:38:26,299 - kisaanvaani - INFO - Main: Main thread will sleep for 6.00s to allow TTS thread to complete ('Hey there! I've got the latest...').
+2025-06-28 21:38:26,301 - kisaanvaani.voice - INFO - TTS Thread: Found voice for en: English (Caribbean)
+2025-06-28 21:38:26,301 - kisaanvaani.voice - INFO - TTS Thread: Attempting to speak: 'Hey there! I've got the latest weather update for you from Mumbai. Acc...' (Lang: en)
+2025-06-28 21:38:26,312 - kisaanvaani.voice - INFO - TTS Thread: Finished speaking: 'Hey there! I've got the latest weather update for you from Mumbai. Acc...'
+2025-06-28 21:38:32,305 - kisaanvaani - INFO - Main: Finished sleep after TTS call for 'Hey there! I've got the latest...'.
+2025-06-28 21:38:32,305 - kisaanvaani - INFO - handle_user_input finished processing. Rerunning UI.
+2025-06-28 21:38:52,186 - kisaanvaani.voice - INFO - TTS Thread: pyttsx3 engine stopped for this utterance.
