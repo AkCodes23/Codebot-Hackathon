@@ -1,0 +1,64 @@
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import * as Speech from 'expo-speech';
+import { useRoute, useNavigation } from '@react-navigation/native';
+import i18n from '../i18n';
+
+export default function WelcomeScreen() {
+  const route = useRoute();
+  const navigation = useNavigation();
+  const { selectedLang = 'en' } = route.params || {};
+
+  const [displayedText, setDisplayedText] = useState('');
+
+  useEffect(() => {
+    i18n.changeLanguage(selectedLang);
+    const fullText = i18n.t('welcome');
+
+    // Start text-to-speech
+    Speech.speak(fullText, {
+      language: selectedLang,
+      onDone: () => {
+        navigation.replace('Home');
+      },
+    });
+
+    // Typing effect
+    let currentIndex = 0;
+    const interval = setInterval(() => {
+      setDisplayedText(fullText.slice(0, currentIndex + 1));
+      currentIndex++;
+      if (currentIndex === fullText.length) {
+        clearInterval(interval);
+      }
+    }, 50); // typing speed
+
+    return () => {
+      Speech.stop();
+      clearInterval(interval);
+    };
+  }, [selectedLang]);
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.text}>{displayedText}</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#bad2ab',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 30,
+  },
+  text: {
+    fontSize: 24,
+    color: '#124936',
+    textAlign: 'center',
+    fontWeight: '500',
+    lineHeight: 36,
+  },
+});

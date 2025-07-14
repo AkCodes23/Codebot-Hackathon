@@ -1,0 +1,51 @@
+{
+  "name": "kisanvaani",
+  "license": "0BSD",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
+  },
+  "dependencies": {
+    "@expo/metro-runtime": "~5.0.4",
+    "@expo/vector-icons": "^14.1.0",
+    "@react-native-async-storage/async-storage": "2.1.2",
+    "@react-native-community/datetimepicker": "8.4.1",
+    "@react-native-picker/picker": "^2.11.1",
+    "@react-navigation/native": "^7.1.11",
+    "@react-navigation/stack": "^7.3.4",
+    "@shopify/react-native-skia": "2.0.0-next.4",
+    "axios": "^1.10.0",
+    "expo": "53.0.19",
+    "expo-av": "15.1.7",
+    "expo-dev-client": "~5.2.4",
+    "expo-file-system": "18.1.11",
+    "expo-image-picker": "^16.1.4",
+    "expo-localization": "~16.1.6",
+    "expo-location": "18.1.6",
+    "expo-notifications": "0.31.4",
+    "expo-speech": "~13.1.7",
+    "expo-status-bar": "~2.2.3",
+    "firebase": "^11.9.1",
+    "i18next": "^25.3.2",
+    "i18next-browser-languagedetector": "^8.2.0",
+    "i18next-http-backend": "^3.0.2",
+    "lodash": "^4.17.21",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-i18next": "^15.6.0",
+    "react-native": "^0.79.5",
+    "react-native-calendars": "^1.1312.1",
+    "react-native-dropdown-picker": "^5.4.6",
+    "react-native-svg": "^15.11.2",
+    "react-native-web": "^0.20.0",
+    "react-native-gesture-handler": "~2.24.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0"
+  },
+  "private": true
+}
