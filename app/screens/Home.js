@@ -1,80 +1,95 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Linking } from 'react-native';
-import { Ionicons, MaterialIcons, FontAwesome5, Entypo, FontAwesome } from '@expo/vector-icons';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  SafeAreaView,
+  Linking,
+  ScrollView,
+} from 'react-native';
+import {
+  Ionicons,
+  MaterialIcons,
+  FontAwesome5,
+  Entypo,
+  FontAwesome,
+} from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import i18n from '../i18n';
 
-const features = [
-  {
-    title: 'Weather',
-    subtitle: 'Check today’s weather',
-    iconComponent: Ionicons,
-    iconProps: { name: 'sunny-outline', size: 24, color: 'black' },
-    screen: 'Weather',
-  },
-  {
-    title: 'Crop Advisory',
-    subtitle: 'Get expert advice',
-    iconComponent: MaterialIcons,
-    iconProps: { name: 'eco', size: 24, color: 'black' },
-    screen: 'AnimalRecordsScreen',
-  },
-  {
-    title: 'Market Prices',
-    subtitle: 'Latest market trends',
-    iconComponent: FontAwesome5,
-    iconProps: { name: 'rupee-sign', size: 20, color: 'black' },
-    screen: 'Market',
-  },
-  {
-    title: 'Ask KisanVaani',
-    subtitle: 'Your AI assistant',
-    iconComponent: Ionicons,
-    iconProps: { name: 'chatbubble-ellipses-outline', size: 22, color: 'black' },
-    screen: 'VoiceAssistant', // special case handled below
-  },
-  {
-    title: 'Community',
-    subtitle: 'Connect with farmers',
-    iconComponent: Ionicons,
-    iconProps: { name: 'people-outline', size: 24, color: 'black' },
-    screen: '',
-  },
-  {
-    title: 'Help',
-    subtitle: 'FAQs and support',
-    iconComponent: Entypo,
-    iconProps: { name: 'help-with-circle', size: 22, color: 'black' },
-    screen: '',
-  },
-  {
-    title: 'Livestock Database',
-    subtitle: 'Track and manage animals',
-    iconComponent: FontAwesome5,
-    iconProps: { name: 'horse', size: 22, color: 'black' },
-    screen: 'FarmDatabase',
-  },
-  {
-    title: 'Govt Schemes',
-    subtitle: 'Know available benefits',
-    iconComponent: FontAwesome,
-    iconProps: { name: 'institution', size: 22, color: 'black' },
-    screen: 'GovtScheme',
-  },
-  {
-    title: 'Reminders',
-    subtitle: 'Manage farm tasks',
-    iconComponent: Ionicons,
-    iconProps: { name: 'alarm-outline', size: 22, color: 'black' },
-    screen: 'Reminders',
-  },
-];
-
-const KisanVaaniHome = () => {
+const Home = () => {
   const navigation = useNavigation();
+
+  const features = [
+    {
+      title: i18n.t('weather'),
+      subtitle: i18n.t('weather_sub'),
+      iconComponent: Ionicons,
+      iconProps: { name: 'sunny-outline', size: 24, color: 'black' },
+      screen: 'Weather',
+    },
+    {
+      title: i18n.t('crop_advisory'),
+      subtitle: i18n.t('crop_advisory_sub'),
+      iconComponent: MaterialIcons,
+      iconProps: { name: 'eco', size: 24, color: 'black' },
+      screen: 'CropAdvice',
+    },
+    {
+      title: i18n.t('market_prices'),
+      subtitle: i18n.t('market_prices_sub'),
+      iconComponent: FontAwesome5,
+      iconProps: { name: 'rupee-sign', size: 20, color: 'black' },
+      screen: 'Market',
+    },
+    {
+      title: i18n.t('ask_kisanvaani'),
+      subtitle: i18n.t('ask_kisanvaani_sub'),
+      iconComponent: Ionicons,
+      iconProps: { name: 'chatbubble-ellipses-outline', size: 22, color: 'black' },
+      screen: 'VoiceAssistant',
+    },
+    {
+      title: i18n.t('community'),
+      subtitle: i18n.t('community_sub'),
+      iconComponent: Ionicons,
+      iconProps: { name: 'people-outline', size: 24, color: 'black' },
+      screen: '',
+    },
+    {
+      title: i18n.t('help'),
+      subtitle: i18n.t('help_sub'),
+      iconComponent: Entypo,
+      iconProps: { name: 'help-with-circle', size: 22, color: 'black' },
+      screen: 'Help',
+    },
+    {
+      title: i18n.t('farm_livestock'),
+      subtitle: i18n.t('livestock_db_sub'),
+      iconComponent: FontAwesome5,
+      iconProps: { name: 'horse', size: 22, color: 'black' },
+      screen: 'FarmDatabase',
+    },
+    {
+      title: i18n.t('govt_schemes'),
+      subtitle: i18n.t('govt_schemes_sub'),
+      iconComponent: FontAwesome,
+      iconProps: { name: 'institution', size: 22, color: 'black' },
+      screen: 'GovtScheme',
+    },
+    {
+      title: i18n.t('reminders'),
+      subtitle: i18n.t('reminders_sub'),
+      iconComponent: Ionicons,
+      iconProps: { name: 'alarm-outline', size: 22, color: 'black' },
+      screen: 'Reminders',
+    },
+  ];
 
   const handlePress = (item) => {
     if (item.screen === 'VoiceAssistant') {
-      Linking.openURL('https://ptjdr6h5-8501.inc1.devtunnels.ms/');
+      Linking.openURL('https://jnmrg673-8501.inc1.devtunnels.ms/');
     } else if (item.screen) {
       navigation.navigate(item.screen);
     } else {
@@ -84,37 +99,46 @@ const KisanVaaniHome = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>KisanVaani</Text>
-      <Text style={styles.greeting}>Welcome!</Text>
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <Text style={styles.title}>{i18n.t('kisanvaani')}</Text>
+        <Text style={styles.greeting}>{i18n.t('welcome_short')}</Text>
 
-      <View style={styles.grid}>
-        {features.map((item, idx) => {
-          const Icon = item.iconComponent;
-          return (
-            <TouchableOpacity key={idx} style={styles.card} onPress={() => handlePress(item)}>
-              <Icon {...item.iconProps} />
-              <Text style={styles.cardTitle}>{item.title}</Text>
-              <Text style={styles.cardSubtitle}>{item.subtitle}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+        <View style={styles.grid}>
+          {features.map((item, idx) => {
+            const Icon = item.iconComponent;
+            return (
+              <TouchableOpacity key={idx} style={styles.card} onPress={() => handlePress(item)}>
+                <Icon {...item.iconProps} />
+                <Text style={styles.cardTitle}>{item.title}</Text>
+                <Text style={styles.cardSubtitle}>{item.subtitle}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </ScrollView>
 
-      <TouchableOpacity style={styles.micButton} onPress={() => console.log('Voice input')}>
+      {/* Mic Button opens external link */}
+      <TouchableOpacity
+        style={styles.micButton}
+        onPress={() => Linking.openURL('https://jnmrg673-8501.inc1.devtunnels.ms/')}
+      >
         <Ionicons name="mic" size={28} color="#fff" />
       </TouchableOpacity>
     </SafeAreaView>
   );
 };
 
-export default KisanVaaniHome;
+export default Home;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 50,
-    paddingHorizontal: 20,
     backgroundColor: '#fff',
+  },
+  scroll: {
+    paddingTop: 40,
+    paddingBottom: 100,
+    paddingHorizontal: 20,
   },
   title: {
     fontSize: 20,

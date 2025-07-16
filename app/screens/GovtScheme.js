@@ -72,7 +72,20 @@ const GovtSchemesScreen = ({ navigation }) => {
         <Text style={styles.heading}>{i18n.t('govt_schemes')}</Text>
       </View>
 
-      {/* Language-aware Drawer Menu */}
+      {/* Filter Tags (Optional UI) */}
+      <View style={styles.filters}>
+        <TouchableOpacity style={styles.filterButton}>
+          <Text style={styles.filterText}>Location ⌄</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.filterButton}>
+          <Text style={styles.filterText}>Crop Type ⌄</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.filterButton}>
+          <Text style={styles.filterText}>Income Level ⌄</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Menu Modal */}
       <Modal visible={menuVisible} transparent animationType="fade">
         <Pressable style={styles.menuOverlay} onPress={() => setMenuVisible(false)}>
           <View style={styles.menu}>
@@ -89,7 +102,7 @@ const GovtSchemesScreen = ({ navigation }) => {
         </Pressable>
       </Modal>
 
-      {/* Scheme Cards */}
+      {/* Government Scheme Cards */}
       <ScrollView style={styles.schemeList}>
         {schemes.map((scheme, index) => (
           <View key={index} style={styles.schemeCard}>
@@ -111,7 +124,11 @@ const GovtSchemesScreen = ({ navigation }) => {
         ))}
       </ScrollView>
 
-      <TouchableOpacity style={styles.micButton} onPress={() => console.log('Voice input')}>
+      {/* Mic Button that opens external voice assistant URL */}
+      <TouchableOpacity
+        style={styles.micButton}
+        onPress={() => Linking.openURL('https://jnmrg673-8501.inc1.devtunnels.ms/')}
+      >
         <Ionicons name="mic" size={28} color="#fff" />
       </TouchableOpacity>
     </SafeAreaView>
@@ -126,7 +143,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: 50,
+    height: 60,
     position: 'relative',
     marginBottom: 10,
   },
@@ -134,14 +151,29 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     paddingHorizontal: 10,
-    marginTop: 25,
+    marginTop: 15,
   },
   heading: {
     fontSize: 20,
     fontWeight: 'bold',
     textAlign: 'center',
     marginVertical: 10,
-    marginTop: 20,
+    marginTop: 15,
+  },
+  filters: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  filterButton: {
+    backgroundColor: '#EAF2E3',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  filterText: {
+    fontSize: 14,
+    color: '#333',
   },
   schemeList: {
     flex: 1,

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import * as Speech from 'expo-speech';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import i18n from '../i18n';
@@ -10,6 +10,7 @@ export default function WelcomeScreen() {
   const { selectedLang = 'en' } = route.params || {};
 
   const [displayedText, setDisplayedText] = useState('');
+  const [speechDone, setSpeechDone] = useState(false);
 
   useEffect(() => {
     i18n.changeLanguage(selectedLang);
@@ -19,6 +20,7 @@ export default function WelcomeScreen() {
     Speech.speak(fullText, {
       language: selectedLang,
       onDone: () => {
+        setSpeechDone(true);
         navigation.replace('Home');
       },
     });
@@ -31,7 +33,7 @@ export default function WelcomeScreen() {
       if (currentIndex === fullText.length) {
         clearInterval(interval);
       }
-    }, 50); // typing speed
+    }, 50);
 
     return () => {
       Speech.stop();
@@ -39,9 +41,17 @@ export default function WelcomeScreen() {
     };
   }, [selectedLang]);
 
+  const handleSkip = () => {
+    Speech.stop();
+    navigation.replace('Home');
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.text}>{displayedText}</Text>
+      <TouchableOpacity onPress={handleSkip} style={styles.skipButton}>
+        <Text style={styles.skipText}>{i18n.t('skip') || 'Skip'}</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -60,5 +70,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '500',
     lineHeight: 36,
+  },
+  skipButton: {
+    marginTop: 30,
+    backgroundColor: '#124936',
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  skipText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

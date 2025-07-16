@@ -9,15 +9,17 @@ import {
   Modal,
   Pressable,
   Alert,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import * as Location from 'expo-location';
+import i18n from '../i18n';
 
 const Weather = ({ navigation }) => {
   const [menuVisible, setMenuVisible] = useState(false);
   const [location, setLocation] = useState(null);
-  const [city, setCity] = useState('Fetching...');
+  const [city, setCity] = useState(i18n.t('fetching'));
   const [weather, setWeather] = useState({
     temperature: '--',
     humidity: '--',
@@ -31,20 +33,19 @@ const Weather = ({ navigation }) => {
     try {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Location access is needed for weather updates.');
+        Alert.alert(i18n.t('permission_denied'), i18n.t('location_permission_needed'));
         return;
       }
 
       let loc = await Location.getCurrentPositionAsync({});
       setLocation(loc.coords);
 
-      // Reverse geocode to get city name
       let [place] = await Location.reverseGeocodeAsync({
         latitude: loc.coords.latitude,
         longitude: loc.coords.longitude,
       });
 
-      const cityName = place.city || place.name || 'Unknown';
+      const cityName = place.city || place.name || i18n.t('unknown');
       setCity(cityName);
       fetchWeatherByCoords(loc.coords.latitude, loc.coords.longitude);
     } catch (err) {
@@ -64,10 +65,7 @@ const Weather = ({ navigation }) => {
         temperature: data.main.temp,
         humidity: data.main.humidity,
         rain,
-        alert:
-          rain > 0.1
-            ? 'Moderate rain expected in the next 24 hours. Take necessary precautions.'
-            : '',
+        alert: rain > 0.1 ? i18n.t('moderate_rain_warning') : '',
       });
     } catch (error) {
       console.error('Weather API error:', error);
@@ -78,27 +76,19 @@ const Weather = ({ navigation }) => {
     getLocationAndWeather();
   }, []);
 
-  const handleMenuPress = (item) => {
+  const menuItems = [
+    { labelKey: 'home', route: 'Home' },
+    { labelKey: 'market_prices', route: 'Market' },
+    { labelKey: 'weather', route: 'Weather' },
+    { labelKey: 'reminders', route: 'Reminders' },
+    { labelKey: 'farm_livestock', route: 'FarmDatabase' },
+    { labelKey: 'animal_records', route: 'AnimalRecordsScreen' },
+    { labelKey: 'govt_schemes', route: 'GovtScheme' },
+  ];
+
+  const handleMenuPress = (route) => {
     setMenuVisible(false);
-    switch (item) {
-      case 'Home':
-        navigation.navigate('Home');
-        break;
-      case 'Reminders':
-        navigation.navigate('Reminders');
-        break;
-      case 'Weather':
-        navigation.navigate('Weather');
-        break;
-      case 'Farm & Livestock':
-        navigation.navigate('FarmDatabase');
-        break;
-      case 'Animal Records':
-        navigation.navigate('AnimalRecordsScreen');
-        break;
-      default:
-        alert(`${item} clicked`);
-    }
+    navigation.navigate(route);
   };
 
   return (
@@ -107,69 +97,62 @@ const Weather = ({ navigation }) => {
         <TouchableOpacity onPress={() => setMenuVisible(true)}>
           <Ionicons name="menu" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.title}>Weather Forecast</Text>
+        <Text style={styles.title}>{i18n.t('weather_forecast')}</Text>
       </View>
 
-      <Text style={styles.sectionTitle}>City: {city}</Text>
-      <Text style={styles.sectionTitle}>Current Conditions</Text>
+      <Text style={styles.sectionTitle}>{i18n.t('city')}: {city}</Text>
+      <Text style={styles.sectionTitle}>{i18n.t('current_conditions')}</Text>
 
       <View style={styles.conditionsGrid}>
         <View style={styles.box}>
-          <Text style={styles.boxLabel}>Temperature</Text>
+          <Text style={styles.boxLabel}>{i18n.t('temperature')}</Text>
           <Text style={styles.boxValue}>{weather.temperature}°C</Text>
         </View>
         <View style={styles.box}>
-          <Text style={styles.boxLabel}>Rain Forecast</Text>
+          <Text style={styles.boxLabel}>{i18n.t('rain_forecast')}</Text>
           <Text style={styles.boxValue}>{weather.rain * 100}%</Text>
         </View>
         <View style={[styles.box, { width: '100%' }]}>
-          <Text style={styles.boxLabel}>Humidity</Text>
+          <Text style={styles.boxLabel}>{i18n.t('humidity')}</Text>
           <Text style={styles.boxValue}>{weather.humidity}%</Text>
         </View>
       </View>
 
-      <Text style={styles.sectionTitle}>Alerts</Text>
+      <Text style={styles.sectionTitle}>{i18n.t('alerts')}</Text>
       <View style={styles.alertBox}>
         <Ionicons name="rainy-outline" size={24} />
         <View style={{ marginLeft: 10 }}>
-          <Text style={{ fontWeight: 'bold' }}>Rain Alert</Text>
+          <Text style={{ fontWeight: 'bold' }}>{i18n.t('rain_alert')}</Text>
           <Text style={{ color: '#4CAF50' }}>
-            {weather.alert || 'No alerts for now.'}
+            {weather.alert || i18n.t('no_alerts')}
           </Text>
         </View>
       </View>
 
-      <Text style={styles.sectionTitle}>Voice Input</Text>
+      <Text style={styles.sectionTitle}>{i18n.t('voice_input')}</Text>
       <TextInput
         style={styles.input}
-        placeholder="Ask a question (e.g., Will it rain tomorrow?)"
+        placeholder={i18n.t('ask_weather_placeholder')}
         placeholderTextColor="#999"
       />
-      <TouchableOpacity style={styles.voiceBtn}>
-        <Ionicons name="mic" size={24} color="#fff" />
+
+      <TouchableOpacity
+        style={styles.micButton}
+        onPress={() => Linking.openURL('https://jnmrg673-8501.inc1.devtunnels.ms/')}
+      >
+        <Ionicons name="mic" size={28} color="#fff" />
       </TouchableOpacity>
 
       <Modal transparent={true} visible={menuVisible} animationType="slide">
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setMenuVisible(false)}
-        >
+        <Pressable style={styles.modalOverlay} onPress={() => setMenuVisible(false)}>
           <View style={styles.menu}>
-            {[
-              'Home',
-              'Market Prices',
-              'Weather',
-              'Reminders',
-              'Farm & Livestock',
-              'Animal Records',
-              'Govt Schemes',
-            ].map((item, index) => (
+            {menuItems.map((item, index) => (
               <TouchableOpacity
                 key={index}
                 style={styles.menuItem}
-                onPress={() => handleMenuPress(item)}
+                onPress={() => handleMenuPress(item.route)}
               >
-                <Text style={styles.menuText}>{item}</Text>
+                <Text style={styles.menuText}>{i18n.t(item.labelKey)}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -237,13 +220,17 @@ const styles = StyleSheet.create({
     marginTop: 10,
     color: '#000',
   },
-  voiceBtn: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 50,
-    padding: 15,
+  micButton: {
     position: 'absolute',
-    bottom: 20,
-    right: 20,
+    bottom: 30,
+    right: 30,
+    backgroundColor: '#3CB043',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 5,
   },
   modalOverlay: {
     flex: 1,
