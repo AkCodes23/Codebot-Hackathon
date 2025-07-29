@@ -58,7 +58,7 @@ We aim to **empower Indian farmers** by combining AI with accessibility:
 
 ## 🏗️ System Architecture
 
-![System Architecture](architecture.png)
+![System Architecture](LLM solution.jpg)
 
 ---
 
