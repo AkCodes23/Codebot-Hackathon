@@ -1,4 +1,4 @@
-# 🌾 KisaanVaani – AI Voice Assistant for Indian Farmers
+# 🌾 KisanVaani – AI Voice Assistant for Indian Farmers
 
 ![MIT Manipal](https://img.shields.io/badge/Built%20at-MIT%20Manipal-blue.svg)
 ![Made with AI](https://img.shields.io/badge/Powered%20by-AI%20%26%20LLMs-purple.svg)
@@ -9,6 +9,14 @@
 > A voice-powered, multilingual AI assistant built to serve India's rural farming communities with crop advice, market rates, weather alerts, and financial tools — even offline.
 
 ---
+## 🌾 Why KisaanVaani?
+
+Over 100M farmers in India face:
+- ❌ Lack of reliable crop information in native languages
+- ❌ Internet inaccessibility in remote areas
+- ❌ Limited access to mandi rates, government schemes, or predictive alerts
+
+**KisaanVaani** is built to solve this — using cutting-edge AI, but with a human-first design.
 
 ## 🎯 Vision
 
@@ -73,5 +81,15 @@ We aim to **empower Indian farmers** by combining AI with accessibility:
 | Memory        | MongoDB (chat), Milvus (semantic)   |
 | APIs          | OpenWeatherMap, ag-API, Mandi, Tavily |
 | Hosting       | Google Cloud Platform (GCP)         |
+
+## 🧠 AI Architecture Modules
+
+| Module            | Description                                           |
+|------------------|-------------------------------------------------------|
+| `LLMManager`      | Handles LangChain + LoRA model loading and calls     |
+| `MemoryManager`   | Stores conversation, region, crop, soil history      |
+| `RAGPlanner`      | Retrieves relevant past plans + weather + FAQ        |
+| `VoiceManager`    | Whisper-based ASR & TTS integration                  |
+| `ToolManager`     | Connects to APIs like weather, mandi, ag-API         |
 
 
