@@ -1,0 +1,12 @@
+streamlit>=1.33,<2
+SpeechRecognition>=3.10.0,<4
+pyttsx3>=2.90,<3
+requests>=2.31,<3
+certifi>=2024.2.2
+# Microphone backend needed by SpeechRecognition for live input (Windows)
+PyAudio>=0.2.13; platform_system=="Windows"
+
+# External API SDKs used by the app
+groq>=0.11.0
+# Optional: enable web search features used by ToolSystem
+tavily-python>=0.3.3
