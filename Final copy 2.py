@@ -42,8 +42,8 @@ context_logger = logging.getLogger('kisaanvaani.context')
 
 # --- Constants and Configuration ---
 # ENSURE THIS IS YOUR VALID, WORKING GROQ API KEY
-GROQ_API_KEY = "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"
-TAVILY_API_KEY = "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"
+GROQ_API_KEY = "Enter API key here"
+TAVILY_API_KEY = "Enter API key here"
 
 SUPPORTED_LANGUAGES = {
     "english": "en",
